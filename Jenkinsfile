@@ -4,10 +4,10 @@ pipeline {
     environment {
         ANTHROPIC_API_KEY = credentials('ANTHROPIC_API_KEY')
         SEARCH_API_KEY = credentials('SEARCH_API_KEY')
-        SMTP_SERVER = credentials('smtp_server')
-        SMTP_PORT = credentials('smtp_port')
-        SMTP_USER = credentials('smtp_user')
-        SMTP_PASSWORD = credentials('smtp_password')
+        SMTP_SERVER = credentials('SMTP_SERVER')
+        SMTP_PORT = credentials('SMTP_PORT')   // Check this line
+        SMTP_USER = credentials('SMTP_USER')
+        SMTP_PASSWORD = credentials('SMTP_PASSWORD')
     }
 
     stages {

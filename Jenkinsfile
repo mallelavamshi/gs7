@@ -2,8 +2,12 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "streamlit_app"
-        CONTAINER_NAME = "streamlit_container"
+        ANTHROPIC_API_KEY = credentials('ANTHROPIC_API_KEY')
+        SEARCH_API_KEY = credentials('SEARCH_API_KEY')
+        SMTP_SERVER = credentials('smtp_server')
+        SMTP_PORT = credentials('smtp_port')
+        SMTP_USER = credentials('smtp_user')
+        SMTP_PASSWORD = credentials('smtp_password')
     }
 
     stages {
@@ -16,7 +20,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t ${IMAGE_NAME} .'
+                    sh 'docker build -t streamlit_app .'
                 }
             }
         }
@@ -24,12 +28,19 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    // Stop and remove any existing container
-                    sh 'docker stop ${CONTAINER_NAME} || true'
-                    sh 'docker rm ${CONTAINER_NAME} || true'
+                    sh 'docker stop streamlit_container || true'
+                    sh 'docker rm streamlit_container || true'
                     
-                    // Run the container
-                    sh 'docker run -d -p 8501:8501 --name ${CONTAINER_NAME} ${IMAGE_NAME}'
+                    sh '''
+                    docker run -d -p 8501:8501 --name streamlit_container \
+                        -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
+                        -e SEARCH_API_KEY=${SEARCH_API_KEY} \
+                        -e SMTP_SERVER=${SMTP_SERVER} \
+                        -e SMTP_PORT=${SMTP_PORT} \
+                        -e SMTP_USER=${SMTP_USER} \
+                        -e SMTP_PASSWORD=${SMTP_PASSWORD} \
+                        streamlit_app
+                    '''
                 }
             }
         }

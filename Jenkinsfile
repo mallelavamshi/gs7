@@ -5,7 +5,7 @@ pipeline {
         ANTHROPIC_API_KEY = credentials('ANTHROPIC_API_KEY')
         SEARCH_API_KEY = credentials('SEARCH_API_KEY')
         SMTP_SERVER = credentials('SMTP_SERVER')
-        SMTP_PORT = credentials('SMTP_PORT')   // Check this line
+        SMTP_PORT = credentials('SMTP_PORT')
         SMTP_USER = credentials('SMTP_USER')
         SMTP_PASSWORD = credentials('SMTP_PASSWORD')
     }
@@ -20,7 +20,15 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t streamlit_app .'
+                    sh '''
+                    docker build --build-arg ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
+                                 --build-arg SEARCH_API_KEY=${SEARCH_API_KEY} \
+                                 --build-arg SMTP_SERVER=${SMTP_SERVER} \
+                                 --build-arg SMTP_PORT=${SMTP_PORT} \
+                                 --build-arg SMTP_USER=${SMTP_USER} \
+                                 --build-arg SMTP_PASSWORD=${SMTP_PASSWORD} \
+                                 -t streamlit_app .
+                    '''
                 }
             }
         }
@@ -28,10 +36,10 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    sh 'docker stop streamlit_container || true'
-                    sh 'docker rm streamlit_container || true'
-                    
                     sh '''
+                    docker stop streamlit_container || true
+                    docker rm streamlit_container || true
+                    
                     docker run -d -p 8501:8501 --name streamlit_container \
                         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
                         -e SEARCH_API_KEY=${SEARCH_API_KEY} \

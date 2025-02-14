@@ -28,7 +28,7 @@ init_db()
 
 SESSION_USER_KEY = "authenticated_user"
 
-VERIFICATION_EXPIRY = 1800  # 30 minutes (previously 10 minutes)
+VERIFICATION_EXPIRY = 60  # 30 minutes (previously 10 minutes)
 
 
 

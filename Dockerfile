@@ -5,6 +5,10 @@ RUN apt update && apt install -y sqlite3
 
 WORKDIR /app
 
+# Create database directory with correct permissions
+RUN mkdir -p /var/lib/estateai && \
+    chmod 777 /var/lib/estateai
+
 COPY requirements.txt .
 COPY app.py .
 COPY auth_original.py .
@@ -13,8 +17,7 @@ COPY database.py .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create directory for database
-RUN mkdir -p /var/lib/estateai
+# Create volume for database persistence
 VOLUME /var/lib/estateai
 
 # Expose Streamlit default port
@@ -36,6 +39,9 @@ ENV SMTP_PORT=$SMTP_PORT
 ENV SMTP_USER=$SMTP_USER
 ENV SMTP_PASSWORD=$SMTP_PASSWORD
 ENV DATABASE_PATH=/var/lib/estateai/estateai.db
+
+# Change working directory permissions
+RUN chown -R www-data:www-data /app
 
 # Run the Streamlit app
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

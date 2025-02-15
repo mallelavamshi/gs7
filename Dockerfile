@@ -13,6 +13,7 @@ COPY requirements.txt .
 COPY app.py .
 COPY auth_original.py .
 COPY database.py .
+COPY startup.py .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -40,8 +41,9 @@ ENV SMTP_USER=$SMTP_USER
 ENV SMTP_PASSWORD=$SMTP_PASSWORD
 ENV DATABASE_PATH=/var/lib/estateai/estateai.db
 
-# Change working directory permissions
-RUN chown -R www-data:www-data /app
+# Add startup script
+COPY startup.sh /app/
+RUN chmod +x /app/startup.sh
 
-# Run the Streamlit app
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Run the startup script and Streamlit app
+CMD ["/bin/bash", "-c", "python startup.py && streamlit run app.py --server.port=8501 --server.address=0.0.0.0"]

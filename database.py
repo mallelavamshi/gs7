@@ -2,38 +2,74 @@ import sqlite3
 import os
 import time
 import bcrypt
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 bcrypt.__about__ = type('obj', (object,), {'__version__': '3.2.0'})
-DATABASE_NAME = os.getenv('DATABASE_PATH', 'estateai.db')
+DATABASE_NAME = os.getenv('DATABASE_PATH', '/var/lib/estateai/estateai.db')
+
+def wait_for_database():
+    """Wait for database file to become available"""
+    max_attempts = 30
+    attempt = 0
+    while attempt < max_attempts:
+        if os.path.exists(os.path.dirname(DATABASE_NAME)):
+            return True
+        logger.info(f"Waiting for database directory... Attempt {attempt + 1}/{max_attempts}")
+        time.sleep(1)
+        attempt += 1
+    return False
 
 def init_db():
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(DATABASE_NAME), exist_ok=True)
+    """Initialize database with retry logic"""
+    if not wait_for_database():
+        raise Exception("Database directory not available")
+
+    logger.info(f"Initializing database at: {DATABASE_NAME}")
     
-    conn = sqlite3.connect(DATABASE_NAME)
-    c = conn.cursor()
-    
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-                 user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 username TEXT UNIQUE NOT NULL,
-                 email TEXT UNIQUE NOT NULL,
-                 password_hash TEXT NOT NULL,
-                 role TEXT DEFAULT 'user',
-                 max_images INTEGER DEFAULT 100,
-                 processed_images INTEGER DEFAULT 0,
-                 verified INTEGER DEFAULT 0,
-                 verification_code TEXT,
-                 code_created_at REAL,
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    c.execute('''CREATE TABLE IF NOT EXISTS reports (
-                 report_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 username TEXT NOT NULL,
-                 report_path TEXT NOT NULL,
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    conn.commit()
-    conn.close()
+    try:
+        os.makedirs(os.path.dirname(DATABASE_NAME), exist_ok=True)
+        
+        conn = sqlite3.connect(DATABASE_NAME)
+        c = conn.cursor()
+        
+        # Create users table
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+                     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     username TEXT UNIQUE NOT NULL,
+                     email TEXT UNIQUE NOT NULL,
+                     password_hash TEXT NOT NULL,
+                     role TEXT DEFAULT 'user',
+                     max_images INTEGER DEFAULT 100,
+                     processed_images INTEGER DEFAULT 0,
+                     verified INTEGER DEFAULT 0,
+                     verification_code TEXT,
+                     code_created_at REAL,
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Create reports table
+        c.execute('''CREATE TABLE IF NOT EXISTS reports (
+                     report_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     username TEXT NOT NULL,
+                     report_path TEXT NOT NULL,
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        conn.commit()
+        logger.info("Database initialized successfully")
+        
+        # Verify tables
+        c.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = c.fetchall()
+        logger.info(f"Available tables: {tables}")
+        
+    except Exception as e:
+        logger.error(f"Database initialization failed: {str(e)}")
+        raise
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 # Rest of the database.py code remains the same...
 

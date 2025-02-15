@@ -20,9 +20,9 @@ pipeline {
         stage('Prepare Directories') {
             steps {
                 sh '''
-                sudo mkdir -p /var/lib/estateai
                 sudo mkdir -p /var/lib/estateai/reports
                 sudo chmod -R 777 /var/lib/estateai
+                sudo chown -R 1000:1000 /var/lib/estateai
                 '''
             }
         }
@@ -52,7 +52,6 @@ pipeline {
                     
                     docker run -d -p 8501:8501 --name streamlit_container \
                         -v /var/lib/estateai:/var/lib/estateai \
-                        -v /var/lib/estateai/reports:/var/lib/estateai \
                         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
                         -e SEARCH_API_KEY=${SEARCH_API_KEY} \
                         -e SMTP_SERVER=${SMTP_SERVER} \

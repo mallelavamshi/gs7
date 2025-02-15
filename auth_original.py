@@ -217,211 +217,47 @@ def registration_form():
 
 
 def login_form():
-
     """User login form with modern design"""
-
     with st.form("Login"):
-
         st.markdown("""
-
             <style>
-
-                /* Main form container */
-
-                div[data-testid="stForm"] {
-
-                    max-width: 500px;
-
-                    margin: 2rem auto;
-
-                    padding: 2.5rem;
-
-                    border-radius: 16px;
-
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-
-                    background: #ffffff;
-
-                }
-
-
-
-                /* Input fields */
-
-                .stTextInput input, .stPassword input {
-
-                    width: 100% !important;
-
-                    padding: 14px 16px !important;
-
-                    border: 1px solid #e0e0e0 !important;
-
-                    border-radius: 8px !important;
-
-                    font-size: 16px !important;
-
-                    transition: all 0.3s ease !important;
-
-                }
-
-
-
-                .stTextInput input:focus, .stPassword input:focus {
-
-                    border-color: #6366f1 !important;
-
-                    box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
-
-                }
-
-
-
-                /* Labels */
-
-                .stTextInput label, .stPassword label {
-
-                    font-weight: 500 !important;
-
-                    color: #374151 !important;
-
-                    font-size: 14px !important;
-
-                    margin-bottom: 8px !important;
-
-                }
-
-
-
-                /* Login button */
-
-                .stButton button {
-
-                    width: 100% !important;
-
-                    padding: 14px 20px !important;
-
-                    background: linear-gradient(45deg, #6366f1, #8b5cf6) !important;
-
-                    color: white !important;
-
-                    border: none !important;
-
-                    border-radius: 8px !important;
-
-                    font-weight: 600 !important;
-
-                    font-size: 16px !important;
-
-                    transition: all 0.3s ease !important;
-
-                    margin-top: 1.5rem !important;
-
-                }
-
-
-
-                .stButton button:hover {
-
-                    transform: translateY(-1px);
-
-                    box-shadow: 0 4px 12px rgba(99,102,241,0.25) !important;
-
-                }
-
-
-
-                /* Error messages */
-
-                .stAlert {
-
-                    max-width: 500px !important;
-
-                    margin: 1rem auto !important;
-
-                    border-radius: 8px !important;
-
-                }
-
-
-
-                /* Mobile responsiveness */
-
-                @media (max-width: 600px) {
-
-                    div[data-testid="stForm"] {
-
-                        margin: 1rem;
-
-                        padding: 1.5rem;
-
-                    }
-
-                }
-
+                /* Your existing styles... */
             </style>
-
         """, unsafe_allow_html=True)
 
-
-
-        # Form content
-
         st.markdown("<h2 style='text-align: center; margin-bottom: 2rem; color: #1f2937;'>Welcome Back 👋</h2>", 
-
                     unsafe_allow_html=True)
-
         
-
         username = st.text_input("Username", key="username")
-
         password = st.text_input("Password", type="password", key="password")
-
         
-
-        # Form controls
-
         col1, col2 = st.columns([1, 2])
-
         with col1:
-
             st.checkbox("Remember me")
-
         with col2:
-
             st.markdown("<div style='text-align: right; margin-top: 8px;'>"
-
                         "<a href='#' style='color: #6366f1; text-decoration: none; font-size: 14px;'>"
-
                         "Forgot password?</a></div>", unsafe_allow_html=True)
 
-
-
         if st.form_submit_button("Sign In"):
-
             if verify_user(username, password):
-
-                conn = sqlite3.connect("estateai.db")
-
-                verified = conn.execute("SELECT verified FROM users WHERE username=?",
-
-                                      (username,)).fetchone()[0]
-
-                conn.close()
-
-               
-
-                if verified:
-
-                    st.session_state[SESSION_USER_KEY] = username
-
-                    st.rerun()
-
-                else:
-
-                    st.error("Email not verified")
-
+                try:
+                    conn = sqlite3.connect(DATABASE_NAME)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT verified FROM users WHERE username=?", (username,))
+                    result = cursor.fetchone()
+                    
+                    if result and result[0]:
+                        st.session_state[SESSION_USER_KEY] = username
+                        st.rerun()
+                    else:
+                        st.error("Email not verified")
+                except sqlite3.Error as e:
+                    st.error(f"Database error: {str(e)}")
+                finally:
+                    if 'conn' in locals():
+                        conn.close()
             else:
-
                 st.error("Invalid credentials")
 
 

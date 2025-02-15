@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import logging
-from database import init_db
+from database import init_db, create_test_user
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +19,9 @@ def ensure_database():
         # Initialize database
         init_db()
         logger.info("Database initialized successfully")
+        
+        # Create test user
+        create_test_user()
         
         # Verify tables exist
         conn = sqlite3.connect(db_path)

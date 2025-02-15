@@ -152,34 +152,52 @@ def create_user(username: str, email: str, password: str, code: str) -> bool:
         return False
 
 
-
-
-
 def verify_user(username: str, password: str) -> bool:
-
     """Verify user credentials"""
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        cursor.execute('SELECT password_hash FROM users WHERE username = ?', (username,))
+        result = cursor.fetchone()
+        
+        if result:
+            return bcrypt.checkpw(password.encode('utf-8'), result[0].encode('utf-8'))
+        return False
+    except sqlite3.Error as e:
+        logger.error(f"Database error in verify_user: {str(e)}")
+        return False
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
-    conn = sqlite3.connect(DATABASE_NAME)
-
-    c = conn.cursor()
-
-    c.execute('''SELECT password_hash FROM users 
-
-                 WHERE username = ?''', (username,))
-
-    result = c.fetchone()
-
-    conn.close()
-
-    
-
-    if result:
-
-        # Use checkpw instead of verify
-
-        return bcrypt.checkpw(password.encode('utf-8'), result[0].encode('utf-8'))
-
-    return False
+def create_test_user():
+    """Create a test user if no users exist"""
+    try:
+        conn = sqlite3.connect(DATABASE_NAME)
+        cursor = conn.cursor()
+        
+        # Check if any users exist
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            # Create test user with bcrypt hashed password
+            password = "admin123"  # Default password
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            
+            cursor.execute('''
+                INSERT INTO users (username, email, password_hash, role, verified)
+                VALUES (?, ?, ?, ?, ?)
+            ''', ('admin', 'admin@example.com', hashed.decode('utf-8'), 'admin', 1))
+            
+            conn.commit()
+            logger.info("Created test admin user")
+            
+    except sqlite3.Error as e:
+        logger.error(f"Error creating test user: {str(e)}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 
 

@@ -50,7 +50,7 @@ pipeline {
                     docker stop streamlit_container || true
                     docker rm streamlit_container || true
                     
-                    docker run -d -p 8501:8501 --name streamlit_container \
+                    docker run -d -p 127.0.0.1:8501:8501 --name streamlit_container \
                         -v /var/lib/estateai:/var/lib/estateai \
                         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
                         -e SEARCH_API_KEY=${SEARCH_API_KEY} \

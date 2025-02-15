@@ -17,12 +17,12 @@ pipeline {
             }
         }
 
-        stage('Prepare Database Directory') {
+        stage('Prepare Directories') {
             steps {
                 sh '''
                 sudo mkdir -p /var/lib/estateai
-                sudo chmod 777 /var/lib/estateai
-                sudo chown -R 1000:1000 /var/lib/estateai
+                sudo mkdir -p /var/lib/estateai/reports
+                sudo chmod -R 777 /var/lib/estateai
                 '''
             }
         }
@@ -51,7 +51,8 @@ pipeline {
                     docker rm streamlit_container || true
                     
                     docker run -d -p 8501:8501 --name streamlit_container \
-                        -v /var/lib/estateai:/var/lib/estateai:rw \
+                        -v /var/lib/estateai:/var/lib/estateai \
+                        -v /var/lib/estateai/reports:/var/lib/estateai \
                         -e ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} \
                         -e SEARCH_API_KEY=${SEARCH_API_KEY} \
                         -e SMTP_SERVER=${SMTP_SERVER} \
@@ -59,9 +60,6 @@ pipeline {
                         -e SMTP_USER=${SMTP_USER} \
                         -e SMTP_PASSWORD=${SMTP_PASSWORD} \
                         streamlit_app
-
-                    # Ensure database file has correct permissions
-                    sudo chmod 666 /var/lib/estateai/estateai.db || true
                     '''
                 }
             }

@@ -239,6 +239,7 @@ def main_application():
         st.markdown("---")
         st.button("Logout", on_click=lambda: st.session_state.pop("authenticated_user"), key="logout_button")
         
+        # Find this section in main_application() and update it:
         st.subheader("📚 Past Reports")
         reports = get_user_reports(st.session_state.authenticated_user)
 
@@ -247,6 +248,10 @@ def main_application():
         for report in reports:
             try:
                 full_path = report[0]
+                # Update the path to use the mounted volume path
+                if not full_path.startswith('/var/lib/estateai/reports'):
+                    full_path = os.path.join('/var/lib/estateai/reports', os.path.basename(full_path))
+                
                 base_name = os.path.basename(full_path).split('.')[0]
                 
                 parts = base_name.split('_')
@@ -263,22 +268,25 @@ def main_application():
                 
                 with st.expander(f"📅 {report_date.strftime('%Y-%m-%d %H:%M')}"):
                     for path in report_paths:
-                        if path.endswith('.pdf'):
-                            btn_label = "📄 PDF Version"
-                            mime_type = "application/pdf"
-                        elif path.endswith('.xlsx'):
-                            btn_label = "📊 Excel Version"
-                            mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        else:
-                            continue
-                        
-                        with open(path, "rb") as f:
-                            st.download_button(
-                                label=btn_label,
-                                data=f.read(),
-                                file_name=os.path.basename(path),
-                                mime=mime_type
-                            )
+                        try:
+                            if path.endswith('.pdf'):
+                                btn_label = "📄 PDF Version"
+                                mime_type = "application/pdf"
+                            elif path.endswith('.xlsx'):
+                                btn_label = "📊 Excel Version"
+                                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            else:
+                                continue
+                            
+                            with open(path, "rb") as f:
+                                st.download_button(
+                                    label=btn_label,
+                                    data=f.read(),
+                                    file_name=os.path.basename(path),
+                                    mime=mime_type
+                                )
+                        except Exception as e:
+                            st.error(f"Error loading file {path}: {str(e)}")
             except Exception as e:
                 st.error(f"Error loading report {timestamp_str}: {str(e)}")
 
@@ -351,14 +359,16 @@ def main_application():
                     except Exception as e:
                         st.error(f"Image {idx+1} error: {str(e)}")
 
+            # Find this section in main_application() and update it:
             if results:
                 base_name = f"report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                pdf_report_name = f"reports/{base_name}.pdf"
-                excel_report_name = f"reports/{base_name}.xlsx"
-                os.makedirs("reports", exist_ok=True)
+                # Update the reports path to use the persistent volume
+                reports_dir = "/var/lib/estateai/reports"
+                os.makedirs(reports_dir, exist_ok=True)
                 
-                status.update(label="📊 Generating reports...", state="running")
-
+                pdf_report_name = os.path.join(reports_dir, f"{base_name}.pdf")
+                excel_report_name = os.path.join(reports_dir, f"{base_name}.xlsx")
+                
                 pdf_success = create_pdf_report(results, pdf_report_name)
                 excel_success = create_excel_report(results, excel_report_name)
                 
@@ -385,12 +395,6 @@ def main_application():
                                 file_name=os.path.basename(excel_report_name),
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             )
-                    
-                    report_type = "Basic" if basic_process_button else "Full analysis"
-                    st.success(f"{report_type} reports generated successfully!")
-                else:
-                    status.update(label="❌ Report generation failed", state="error")
-                    st.error("Failed to create one or more reports")
 
             # Cleanup temp files
             for temp_file in temp_files:

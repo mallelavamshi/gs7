@@ -1,70 +1,41 @@
 import sqlite3
-
 import os
-
 import time
-
-
-
 import bcrypt
 
-
-
 bcrypt.__about__ = type('obj', (object,), {'__version__': '3.2.0'})
-
-DATABASE_NAME = "estateai.db"
-
-
+DATABASE_NAME = os.getenv('DATABASE_PATH', 'estateai.db')
 
 def init_db():
-
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(DATABASE_NAME), exist_ok=True)
+    
     conn = sqlite3.connect(DATABASE_NAME)
-
     c = conn.cursor()
-
     
-
     c.execute('''CREATE TABLE IF NOT EXISTS users (
-
                  user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-
                  username TEXT UNIQUE NOT NULL,
-
                  email TEXT UNIQUE NOT NULL,
-
                  password_hash TEXT NOT NULL,
-
                  role TEXT DEFAULT 'user',
-
                  max_images INTEGER DEFAULT 100,
-
                  processed_images INTEGER DEFAULT 0,
-
                  verified INTEGER DEFAULT 0,
-
                  verification_code TEXT,
-
                  code_created_at REAL,
-
                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-
     
-
     c.execute('''CREATE TABLE IF NOT EXISTS reports (
-
                  report_id INTEGER PRIMARY KEY AUTOINCREMENT,
-
                  username TEXT NOT NULL,
-
                  report_path TEXT NOT NULL,
-
                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-
     
-
     conn.commit()
-
     conn.close()
+
+# Rest of the database.py code remains the same...
 
 
 

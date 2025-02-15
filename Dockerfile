@@ -1,7 +1,6 @@
 # Use the official Python image
 FROM python:3.9
 
-
 RUN apt update && apt install -y sqlite3
 
 WORKDIR /app
@@ -14,6 +13,9 @@ COPY database.py .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create directory for database
+RUN mkdir -p /var/lib/estateai
+VOLUME /var/lib/estateai
 
 # Expose Streamlit default port
 EXPOSE 8501
@@ -33,6 +35,7 @@ ENV SMTP_SERVER=$SMTP_SERVER
 ENV SMTP_PORT=$SMTP_PORT
 ENV SMTP_USER=$SMTP_USER
 ENV SMTP_PASSWORD=$SMTP_PASSWORD
+ENV DATABASE_PATH=/var/lib/estateai/estateai.db
 
 # Run the Streamlit app
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

@@ -22,6 +22,7 @@ from reportlab.lib import colors
 from streamlit.components.v1 import html
 import time as t
 import openpyxl
+import random
 from openpyxl.drawing.image import Image as XLImage
 
 st.set_page_config(page_title="EstateGenius AI", page_icon="🔍", layout="wide")
@@ -32,12 +33,30 @@ init_db()
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 SEARCH_API_KEY = os.getenv('SEARCH_API_KEY')
 
+def get_funny_message():
+    """Return a random funny message for processing state"""
+    messages = [
+        "🎨 Teaching AI to appreciate art...",
+        "📚 Consulting with virtual antique experts...",
+        "💎 Calculating the value of priceless treasures...",
+        "🔍 Decoding the mysteries of your items...",
+        "✨ Making your items feel special...",
+        "🤖 Asking AI what it thinks about your collection...",
+        "🧐 Studying the fine details...",
+        "📊 Comparing with millions of items...",
+        "👨‍🎨 Getting opinions from digital experts...",
+        "🔎 Making sure we don't miss anything..."
+    ]
+    return random.choice(messages)
+
 def format_time(seconds):
     """Format seconds into HH:MM:SS"""
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    seconds = seconds % 60
-    return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+    if isinstance(seconds, (int, float)):
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        seconds = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return "00:00:00"
 
 def create_pdf_report(results, output_file):
     """Create PDF report with images and analyses"""
@@ -143,6 +162,7 @@ def create_basic_report(images):
             st.error(f"Basic processing error: {str(e)}")
             
     return results, temp_files
+
 
 def get_anthropic_analysis(json_data):
     """Get analysis from Anthropic API"""
@@ -250,7 +270,7 @@ def main_application():
         st.metric("Processed Images", f"{current_count}/{max_allowed}")
         st.markdown("---")
         st.button("Logout", on_click=lambda: st.session_state.pop("authenticated_user"), key="logout_button")
-        
+
         st.subheader("📚 Past Reports")
         reports = get_user_reports(st.session_state.authenticated_user)
         
@@ -312,7 +332,20 @@ def main_application():
             return
 
         with st.status("🔍 Processing images...", expanded=True) as status:
-            st.write("Initializing...")
+            # Initialize containers for updates
+            progress_container = st.container()
+            metrics_container = st.container()
+            message_container = st.empty()
+            
+            with progress_container:
+                st.write("Initializing...")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+            
+            with metrics_container:
+                col1, col2 = st.columns(2)
+                elapsed_placeholder = col1.empty()
+                remaining_placeholder = col2.empty()
             
             # Get images from folder
             images = extract_file_ids_from_folder(folder_url)
@@ -327,33 +360,9 @@ def main_application():
                 st.error(f"Image limit exceeded: {current_count + image_count}/{max_allowed}")
                 return
 
-            # Create placeholders for updates
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            time_cols = st.columns(2)
-            elapsed_metric = time_cols[0].empty()
-            remaining_metric = time_cols[1].empty()
-            
-            # Animation placeholder
-            animation_placeholder = st.empty()
-            
             # Start time tracking
             start_time = datetime.now()
             
-            # Initialize processing animation
-            animation_placeholder.markdown(
-                '''
-                <div class="stComponent">
-                    <ProcessingAnimation
-                        currentImage="1"
-                        totalImages="1"
-                        elapsedTime="00:00:00"
-                    />
-                </div>
-                ''',
-                unsafe_allow_html=True
-            )
-
             if basic_process_button:
                 results, temp_files = create_basic_report(images)
                 status.update(label="📄 Creating basic reports...", state="running")
@@ -363,15 +372,17 @@ def main_application():
                 
                 for idx, image in enumerate(images, 1):
                     try:
-                        # Calculate progress and timing
+                        # Update progress
                         progress = idx / len(images)
                         progress_bar.progress(progress)
                         
-                        # Update elapsed time
+                        # Update status text
+                        status_text.write(f"Processing image {idx} of {len(images)}")
+                        
+                        # Calculate times
                         elapsed_time = (datetime.now() - start_time).total_seconds()
                         elapsed_str = format_time(elapsed_time)
                         
-                        # Calculate estimated time
                         if idx > 1:
                             avg_time_per_image = elapsed_time / (idx - 1)
                             remaining_images = len(images) - idx + 1
@@ -381,24 +392,11 @@ def main_application():
                             remaining_str = "Calculating..."
                         
                         # Update metrics
-                        elapsed_metric.metric("Elapsed Time", elapsed_str)
-                        remaining_metric.metric("Estimated Remaining Time", remaining_str)
+                        elapsed_placeholder.metric("⏱️ Elapsed Time", elapsed_str)
+                        remaining_placeholder.metric("⏳ Estimated Remaining", remaining_str)
                         
-                        # Update animation and status
-                        animation_placeholder.markdown(
-                            f'''
-                            <div class="stComponent">
-                                <ProcessingAnimation
-                                    currentImage="{idx}"
-                                    totalImages="{len(images)}"
-                                    elapsedTime="{elapsed_str}"
-                                />
-                            </div>
-                            ''',
-                            unsafe_allow_html=True
-                        )
-                        
-                        status_text.write(f"Processing image {idx} of {len(images)}")
+                        # Show funny message
+                        message_container.info(get_funny_message())
                         
                         # Process image
                         response = requests.get(image['url'])
@@ -418,12 +416,15 @@ def main_application():
                                 'temp_image_path': img_path,
                                 'analysis': analysis
                             })
+                        
+                        # Small delay to allow UI updates
+                        t.sleep(0.1)
 
                     except Exception as e:
                         st.error(f"Image {idx} error: {str(e)}")
 
-            # Clear animation when processing is complete
-            animation_placeholder.empty()
+                # Clear message container when done
+                message_container.empty()
 
             if results:
                 base_name = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"

@@ -7,7 +7,6 @@ import anthropic
 import pandas as pd
 from PIL import Image
 from io import BytesIO
-import datetime
 from datetime import datetime, timedelta
 import base64
 from dotenv import load_dotenv
@@ -33,27 +32,12 @@ init_db()
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 SEARCH_API_KEY = os.getenv('SEARCH_API_KEY')
 
-def show_processing_status(current, total, start_time):
-    """Display processing status and time estimates"""
-    elapsed_time = datetime.now() - start_time
-    elapsed_str = str(elapsed_time).split('.')[0]  # Format as HH:MM:SS
-    
-    # Calculate estimated time
-    if current > 1:
-        avg_time_per_image = elapsed_time.total_seconds() / (current - 1)
-        remaining_images = total - current + 1
-        estimated_remaining = timedelta(seconds=avg_time_per_image * remaining_images)
-        estimated_str = str(estimated_remaining).split('.')[0]
-    else:
-        estimated_str = "Calculating..."
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Elapsed Time", elapsed_str)
-    with col2:
-        st.metric("Estimated Remaining Time", estimated_str)
-    
-    return elapsed_str, estimated_str
+def format_time(seconds):
+    """Format seconds into HH:MM:SS"""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
 
 def create_pdf_report(results, output_file):
     """Create PDF report with images and analyses"""
@@ -329,8 +313,8 @@ def main_application():
 
         with st.status("🔍 Processing images...", expanded=True) as status:
             st.write("Initializing...")
-            start_time = datetime.now()
             
+            # Get images from folder
             images = extract_file_ids_from_folder(folder_url)
             image_count = len(images)
             
@@ -343,17 +327,30 @@ def main_application():
                 st.error(f"Image limit exceeded: {current_count + image_count}/{max_allowed}")
                 return
 
-            # Initialize progress tracking
+            # Create placeholders for updates
             progress_bar = st.progress(0)
             status_text = st.empty()
+            time_cols = st.columns(2)
+            elapsed_metric = time_cols[0].empty()
+            remaining_metric = time_cols[1].empty()
             
-            # Create placeholder for the
-            # Create placeholder for the processing animation
-            animation_container = st.empty()
+            # Animation placeholder
+            animation_placeholder = st.empty()
             
-            # Render the React component
-            animation_container.markdown(
-                '''<div class="stComponent"><ProcessingAnimation /></div>''',
+            # Start time tracking
+            start_time = datetime.now()
+            
+            # Initialize processing animation
+            animation_placeholder.markdown(
+                '''
+                <div class="stComponent">
+                    <ProcessingAnimation
+                        currentImage="1"
+                        totalImages="1"
+                        elapsedTime="00:00:00"
+                    />
+                </div>
+                ''',
                 unsafe_allow_html=True
             )
 
@@ -366,13 +363,42 @@ def main_application():
                 
                 for idx, image in enumerate(images, 1):
                     try:
-                        # Update progress
+                        # Calculate progress and timing
                         progress = idx / len(images)
                         progress_bar.progress(progress)
                         
-                        # Show processing status
+                        # Update elapsed time
+                        elapsed_time = (datetime.now() - start_time).total_seconds()
+                        elapsed_str = format_time(elapsed_time)
+                        
+                        # Calculate estimated time
+                        if idx > 1:
+                            avg_time_per_image = elapsed_time / (idx - 1)
+                            remaining_images = len(images) - idx + 1
+                            estimated_remaining = avg_time_per_image * remaining_images
+                            remaining_str = format_time(estimated_remaining)
+                        else:
+                            remaining_str = "Calculating..."
+                        
+                        # Update metrics
+                        elapsed_metric.metric("Elapsed Time", elapsed_str)
+                        remaining_metric.metric("Estimated Remaining Time", remaining_str)
+                        
+                        # Update animation and status
+                        animation_placeholder.markdown(
+                            f'''
+                            <div class="stComponent">
+                                <ProcessingAnimation
+                                    currentImage="{idx}"
+                                    totalImages="{len(images)}"
+                                    elapsedTime="{elapsed_str}"
+                                />
+                            </div>
+                            ''',
+                            unsafe_allow_html=True
+                        )
+                        
                         status_text.write(f"Processing image {idx} of {len(images)}")
-                        elapsed_str, estimated_str = show_processing_status(idx, len(images), start_time)
                         
                         # Process image
                         response = requests.get(image['url'])
@@ -396,8 +422,8 @@ def main_application():
                     except Exception as e:
                         st.error(f"Image {idx} error: {str(e)}")
 
-            # Clear the animation when done
-            animation_container.empty()
+            # Clear animation when processing is complete
+            animation_placeholder.empty()
 
             if results:
                 base_name = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"

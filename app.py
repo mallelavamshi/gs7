@@ -20,7 +20,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as PD
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from streamlit.components.v1 import html
-import time as t
+import time
 import openpyxl
 import random
 from openpyxl.drawing.image import Image as XLImage
@@ -45,7 +45,12 @@ def get_funny_message():
         "🧐 Studying the fine details...",
         "📊 Comparing with millions of items...",
         "👨‍🎨 Getting opinions from digital experts...",
-        "🔎 Making sure we don't miss anything..."
+        "🔎 Making sure we don't miss anything...",
+        "🎭 Analyzing artistic significance...",
+        "📸 Enhancing image details...",
+        "🏺 Consulting historical databases...",
+        "🖼️ Examining craftsmanship...",
+        "⚖️ Weighing market values..."
     ]
     return random.choice(messages)
 
@@ -162,7 +167,6 @@ def create_basic_report(images):
             st.error(f"Basic processing error: {str(e)}")
             
     return results, temp_files
-
 
 def get_anthropic_analysis(json_data):
     """Get analysis from Anthropic API"""
@@ -361,7 +365,7 @@ def main_application():
                 return
 
             # Start time tracking
-            start_time = datetime.now()
+            start_time = time.time()
             
             if basic_process_button:
                 results, temp_files = create_basic_report(images)
@@ -376,11 +380,13 @@ def main_application():
                         progress = idx / len(images)
                         progress_bar.progress(progress)
                         
-                        # Update status text
-                        status_text.write(f"Processing image {idx} of {len(images)}")
+                        # Update status text with spinner and image count
+                        spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+                        spinner = spinner_chars[int(time.time() * 10) % len(spinner_chars)]
+                        status_text.write(f"{spinner} Processing image {idx} of {len(images)}")
                         
                         # Calculate times
-                        elapsed_time = (datetime.now() - start_time).total_seconds()
+                        elapsed_time = time.time() - start_time
                         elapsed_str = format_time(elapsed_time)
                         
                         if idx > 1:
@@ -391,12 +397,13 @@ def main_application():
                         else:
                             remaining_str = "Calculating..."
                         
-                        # Update metrics
+                        # Update metrics with icons
                         elapsed_placeholder.metric("⏱️ Elapsed Time", elapsed_str)
                         remaining_placeholder.metric("⏳ Estimated Remaining", remaining_str)
                         
-                        # Show funny message
-                        message_container.info(get_funny_message())
+                        # Show funny message with periodic updates
+                        if idx % 2 == 0 or idx == 1:  # Update message every 2 images or on first image
+                            message_container.info(get_funny_message())
                         
                         # Process image
                         response = requests.get(image['url'])
@@ -418,7 +425,7 @@ def main_application():
                             })
                         
                         # Small delay to allow UI updates
-                        t.sleep(0.1)
+                        time.sleep(0.1)
 
                     except Exception as e:
                         st.error(f"Image {idx} error: {str(e)}")
@@ -435,6 +442,9 @@ def main_application():
                 pdf_report_name = os.path.join(reports_dir, f"{base_name}.pdf")
                 excel_report_name = os.path.join(reports_dir, f"{base_name}.xlsx")
                 
+                # Show generating reports message
+                status.update(label="📊 Generating reports...", state="running")
+                
                 pdf_success = create_pdf_report(results, pdf_report_name)
                 excel_success = create_excel_report(results, excel_report_name)
                 
@@ -445,6 +455,9 @@ def main_application():
                     
                     status.update(label="✅ Processing complete!", state="complete")
                     
+                    # Success message with download buttons
+                    st.success("Reports generated successfully!")
+                    
                     with open(pdf_report_name, "rb") as f_pdf, open(excel_report_name, "rb") as f_xlsx:
                         col1, col2 = st.columns(2)
                         with col1:
@@ -452,14 +465,16 @@ def main_application():
                                 label="📥 Download PDF Report",
                                 data=f_pdf.read(),
                                 file_name=os.path.basename(pdf_report_name),
-                                mime="application/pdf"
+                                mime="application/pdf",
+                                key="pdf_download"
                             )
                         with col2:
                             st.download_button(
                                 label="📥 Download Excel Report",
                                 data=f_xlsx.read(),
                                 file_name=os.path.basename(excel_report_name),
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                key="excel_download"
                             )
 
             # Cleanup temp files

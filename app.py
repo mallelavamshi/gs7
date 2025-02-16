@@ -282,14 +282,16 @@ def get_anthropic_analysis(json_data):
 
     prompt = f"""Analyze product search results and provide structured summary following these guidelines:
     1. Name: If there are multiple listings with same name or almost similar name then the item must be exactly 
-    the same item as that in image. then assertively say the item: "Name", if there all the item listings  mutually exclusive
+    the same item as that in image. then assertively say the item: "Name", if the all the names in item listings  are mutually exclusive
     then the first listing is likely the item similar to the image then say item: "likely- first listing item name"
-    2. ebay prices: give the prices seen in the all the ebay listings seperated by commas, just the prices
-    3. etsy prices:give the prices seen in the all the etsy listings seperated by commas, just the prices
-    4. invaluable prices:give the prices seen in the all the invaluable listings seperated by commas, just the prices
-    5. other auctions houses:give the prices seen in the all the other auction houses listings seperated by commas, just the prices
-    6. opinion: tell succintly what you know about the item, its collector market and trends.
-    7. give all the above bullet points for clear reading.
+    2.opinion: tell succintly what you know about the item, its collector market and trends.
+    3. ebay prices: give the prices seen in the all the ebay listings seperated by commas, just the prices
+    4. etsy prices:give the prices seen in the all the etsy listings seperated by commas, just the prices
+    5. amazon,walmart,macys prices if available.
+    5. auctions houses:just say this item was or is listed in this action houses but dont say the prices in there.
+    6. give all the above bullet points for clear reading.
+    7. dont give any introduction like this:"Here's the structured summary:"
+    
 
     Data: {json.dumps(json_data, indent=2)}"""
 

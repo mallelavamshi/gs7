@@ -8,10 +8,14 @@ import pandas as pd
 from PIL import Image
 from io import BytesIO
 import datetime
+from datetime import datetime, timedelta
 import base64
 from dotenv import load_dotenv
 from auth_original import authenticated_layout
-from database import init_db, get_user_limits, increment_image_count, delete_user, get_all_users, update_user_limit, is_admin, save_report, get_user_reports
+from database import (
+    init_db, get_user_limits, increment_image_count, delete_user, 
+    get_all_users, update_user_limit, is_admin, save_report, get_user_reports
+)
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as PDFImage, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
@@ -28,6 +32,28 @@ init_db()
 
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 SEARCH_API_KEY = os.getenv('SEARCH_API_KEY')
+
+def show_processing_status(current, total, start_time):
+    """Display processing status and time estimates"""
+    elapsed_time = datetime.now() - start_time
+    elapsed_str = str(elapsed_time).split('.')[0]  # Format as HH:MM:SS
+    
+    # Calculate estimated time
+    if current > 1:
+        avg_time_per_image = elapsed_time.total_seconds() / (current - 1)
+        remaining_images = total - current + 1
+        estimated_remaining = timedelta(seconds=avg_time_per_image * remaining_images)
+        estimated_str = str(estimated_remaining).split('.')[0]
+    else:
+        estimated_str = "Calculating..."
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Elapsed Time", elapsed_str)
+    with col2:
+        st.metric("Estimated Remaining Time", estimated_str)
+    
+    return elapsed_str, estimated_str
 
 def create_pdf_report(results, output_file):
     """Create PDF report with images and analyses"""
@@ -77,12 +103,10 @@ def create_excel_report(results, output_file):
     wb = openpyxl.Workbook()
     ws = wb.active
 
-    # Headers
     headers = ['Image', 'File Name', 'Analysis']
     for col, header in enumerate(headers, 1):
         ws.cell(row=1, column=col, value=header).font = openpyxl.styles.Font(bold=True)
 
-    # Add data
     for row_idx, result in enumerate(results, 2):
         try:
             if os.path.exists(result['temp_image_path']):
@@ -98,7 +122,6 @@ def create_excel_report(results, output_file):
         except Exception as e:
             st.error(f"Excel error: {str(e)}")
 
-    # Formatting
     ws.column_dimensions['A'].width = 30
     ws.column_dimensions['B'].width = 30
     ws.column_dimensions['C'].width = 50
@@ -129,7 +152,7 @@ def create_basic_report(images):
             results.append({
                 'name': image['name'],
                 'temp_image_path': img_path,
-                'analysis': ''  # Empty analysis column
+                'analysis': ''
             })
             
         except Exception as e:
@@ -138,6 +161,7 @@ def create_basic_report(images):
     return results, temp_files
 
 def get_anthropic_analysis(json_data):
+    """Get analysis from Anthropic API"""
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     prompt = f"""Analyze product search results and provide structured summary following these guidelines:
@@ -165,6 +189,7 @@ def get_anthropic_analysis(json_data):
         return "Analysis failed"
 
 def search_google_lens(image_url):
+    """Search Google Lens for image matches"""
     try:
         response = requests.get(
             "https://www.searchapi.io/api/v1/search",
@@ -180,6 +205,7 @@ def search_google_lens(image_url):
         return []
 
 def extract_file_ids_from_folder(folder_url):
+    """Extract file IDs from Google Drive folder"""
     try:
         folder_id = folder_url.split('/')[-1]
         files_url = f"https://drive.google.com/drive/folders/{folder_id}"
@@ -194,6 +220,7 @@ def extract_file_ids_from_folder(folder_url):
         return []
 
 def admin_panel():
+    """Admin dashboard functionality"""
     st.header("🛠️ Admin Dashboard")
     st.subheader("User Management")
     users = get_all_users()
@@ -222,6 +249,7 @@ def admin_panel():
             st.error("Failed to update limit")
 
 def main_application():
+    """Main application logic"""
     st.title("🔍 EstateGenius AI")
     st.markdown("---")
 
@@ -239,21 +267,18 @@ def main_application():
         st.markdown("---")
         st.button("Logout", on_click=lambda: st.session_state.pop("authenticated_user"), key="logout_button")
         
-        # Find this section in main_application() and update it:
         st.subheader("📚 Past Reports")
         reports = get_user_reports(st.session_state.authenticated_user)
-
+        
         # Group reports by timestamp
         report_groups = {}
         for report in reports:
             try:
                 full_path = report[0]
-                # Update the path to use the mounted volume path
                 if not full_path.startswith('/var/lib/estateai/reports'):
                     full_path = os.path.join('/var/lib/estateai/reports', os.path.basename(full_path))
                 
                 base_name = os.path.basename(full_path).split('.')[0]
-                
                 parts = base_name.split('_')
                 if len(parts) >= 3:
                     timestamp_str = f"{parts[1]}_{parts[2]}"
@@ -261,11 +286,9 @@ def main_application():
             except Exception as e:
                 st.error(f"Error processing report {full_path}: {str(e)}")
 
-        # Display grouped reports
         for timestamp_str, report_paths in report_groups.items():
             try:
-                report_date = datetime.datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
-                
+                report_date = datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
                 with st.expander(f"📅 {report_date.strftime('%Y-%m-%d %H:%M')}"):
                     for path in report_paths:
                         try:
@@ -306,7 +329,7 @@ def main_application():
 
         with st.status("🔍 Processing images...", expanded=True) as status:
             st.write("Initializing...")
-            start_time = datetime.datetime.now()
+            start_time = datetime.now()
             
             images = extract_file_ids_from_folder(folder_url)
             image_count = len(images)
@@ -320,24 +343,38 @@ def main_application():
                 st.error(f"Image limit exceeded: {current_count + image_count}/{max_allowed}")
                 return
 
+            # Initialize progress tracking
             progress_bar = st.progress(0)
             status_text = st.empty()
+            
+            # Create placeholder for the
+            # Create placeholder for the processing animation
+            animation_container = st.empty()
+            
+            # Render the React component
+            animation_container.markdown(
+                '''<div class="stComponent"><ProcessingAnimation /></div>''',
+                unsafe_allow_html=True
+            )
 
             if basic_process_button:
-                # Process without analysis
                 results, temp_files = create_basic_report(images)
                 status.update(label="📄 Creating basic reports...", state="running")
             else:
-                # Full processing with analysis
                 results = []
                 temp_files = []
                 
-                for idx, image in enumerate(images):
+                for idx, image in enumerate(images, 1):
                     try:
-                        progress = (idx + 1) / len(images)
+                        # Update progress
+                        progress = idx / len(images)
                         progress_bar.progress(progress)
-                        status_text.write(f"Processing image {idx + 1} of {len(images)}")
-
+                        
+                        # Show processing status
+                        status_text.write(f"Processing image {idx} of {len(images)}")
+                        elapsed_str, estimated_str = show_processing_status(idx, len(images), start_time)
+                        
+                        # Process image
                         response = requests.get(image['url'])
                         if response.status_code != 200:
                             continue
@@ -357,11 +394,13 @@ def main_application():
                             })
 
                     except Exception as e:
-                        st.error(f"Image {idx+1} error: {str(e)}")
+                        st.error(f"Image {idx} error: {str(e)}")
 
-            # Find this section in main_application() and update it:
+            # Clear the animation when done
+            animation_container.empty()
+
             if results:
-                base_name = f"report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                base_name = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 # Update the reports path to use the persistent volume
                 reports_dir = "/var/lib/estateai/reports"
                 os.makedirs(reports_dir, exist_ok=True)

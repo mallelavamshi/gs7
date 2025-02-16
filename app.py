@@ -66,14 +66,17 @@ def format_time(seconds):
 
 def create_pdf_report(results, output_file):
     """Create PDF report with images and analyses"""
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as PDFImage, Paragraph, Spacer
     from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
     from reportlab.lib.units import mm
     
     class CustomDocTemplate(SimpleDocTemplate):
         def __init__(self, filename, **kwargs):
             super().__init__(filename, **kwargs)
-            self.topMargin = 15*mm  # Reduced top margin to 15mm
-            self.leftMargin = 25*mm  # Set left margin
+            self.topMargin = 15*mm
+            self.leftMargin = 25*mm
     
     doc = CustomDocTemplate(output_file, pagesize=A4)
     elements = []
@@ -97,7 +100,8 @@ def create_pdf_report(results, output_file):
     # Create a table for layout (contact info and header side by side)
     contact_info = [
         [Paragraph("Email: clara@app.estategeniusai.com", contact_style)],
-        [Paragraph("Mobile (Victor): 9136037561", contact_style)]
+        [Paragraph("Mobile: (+)4696597089", contact_style)],
+        [Paragraph("Website: www.estategeniusai.com", contact_style)]
     ]
     contact_table = Table(contact_info, colWidths=[200])
     contact_table.setStyle(TableStyle([
@@ -117,7 +121,6 @@ def create_pdf_report(results, output_file):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
     
-    # Combine contact and header in a single row
     layout_table = Table([[contact_table, header_table]], colWidths=[200, 300])
     layout_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, 0), 'LEFT'),
@@ -128,7 +131,7 @@ def create_pdf_report(results, output_file):
     elements.append(layout_table)
     elements.append(Spacer(1, 20))
 
-    # Main content table
+    # Rest of the PDF generation code remains the same
     data = [["Image", "File Name", "Analysis"]]
     for result in results:
         try:
@@ -170,20 +173,25 @@ def create_excel_report(results, output_file):
     
     # Add contact information (top left)
     ws['A1'] = "Email: clara@app.estategeniusai.com"
-    ws['A2'] = "Mobile (Victor): 9136037561"
+    ws['A2'] = "Mobile: (+)4696597089"
+    ws['A3'] = "Website: www.estategeniusai.com"
     
     # Style contact info
-    for cell in [ws['A1'], ws['A2']]:
+    for cell in [ws['A1'], ws['A2'], ws['A3']]:
         cell.font = openpyxl.styles.Font(size=9, color="666666")  # Gray color
     
-    # Add header and taglines (center aligned)
-    ws.merge_cells('C1:E1')
-    header_cell = ws['C1']
+    # Center columns for proper alignment
+    title_start_col = 'B'  # Start from column B
+    title_end_col = 'F'    # End at column F
+    
+    # Add header and taglines (center aligned with proper merging)
+    ws.merge_cells(f'{title_start_col}1:{title_end_col}1')
+    header_cell = ws[f'{title_start_col}1']
     header_cell.value = "EstateGenius AI"
     header_cell.font = openpyxl.styles.Font(size=16, bold=True)
-    header_cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+    header_cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     
-    # Add taglines
+    # Add taglines with proper merging
     taglines = [
         "Your Pricing Partner",
         "Saves Hours of Internet Search",
@@ -191,21 +199,23 @@ def create_excel_report(results, output_file):
     ]
     
     for idx, tagline in enumerate(taglines, 2):
-        ws.merge_cells(f'C{idx}:E{idx}')
-        cell = ws[f'C{idx}']
+        # Merge cells for each tagline
+        ws.merge_cells(f'{title_start_col}{idx}:{title_end_col}{idx}')
+        cell = ws[f'{title_start_col}{idx}']
         cell.value = tagline
         cell.font = openpyxl.styles.Font(size=11)
-        cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+        cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     
     # Add some space before the table headers
-    start_row = 5  # Start the actual content from row 5
+    start_row = 6  # Start the actual content from row 6
     
-    # Add headers
+    # Add headers with proper column span
     headers = ['Image', 'File Name', 'Analysis']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=start_row, column=col, value=header)
         cell.font = openpyxl.styles.Font(bold=True)
         cell.fill = openpyxl.styles.PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
 
     # Add data
     for row_idx, result in enumerate(results, start_row + 1):
@@ -224,11 +234,13 @@ def create_excel_report(results, output_file):
             st.error(f"Excel error: {str(e)}")
 
     # Adjust column widths
-    ws.column_dimensions['A'].width = 30
-    ws.column_dimensions['B'].width = 30
-    ws.column_dimensions['C'].width = 30
-    ws.column_dimensions['D'].width = 30
-    ws.column_dimensions['E'].width = 30
+    ws.column_dimensions['A'].width = 30  # For contact info and images
+    ws.column_dimensions['B'].width = 30  # For file names
+    ws.column_dimensions['C'].width = 60  # For analysis
+    
+    # Set row height for header rows
+    for i in range(1, 5):  # Rows 1-4 (contact info and taglines)
+        ws.row_dimensions[i].height = 20
 
     try:
         wb.save(output_file)

@@ -179,10 +179,11 @@ def create_excel_report(results, output_file):
     # Style contact info
     for cell in [ws['A1'], ws['A2'], ws['A3']]:
         cell.font = openpyxl.styles.Font(size=9, color="666666")  # Gray color
+        cell.alignment = openpyxl.styles.Alignment(vertical='center')
     
-    # Center columns for proper alignment
+    # Center columns for proper alignment - merge only two columns
     title_start_col = 'B'  # Start from column B
-    title_end_col = 'F'    # End at column F
+    title_end_col = 'C'    # End at column C (two columns total)
     
     # Add header and taglines (center aligned with proper merging)
     ws.merge_cells(f'{title_start_col}1:{title_end_col}1')
@@ -200,7 +201,8 @@ def create_excel_report(results, output_file):
     
     for idx, tagline in enumerate(taglines, 2):
         # Merge cells for each tagline
-        ws.merge_cells(f'{title_start_col}{idx}:{title_end_col}{idx}')
+        cell_range = f'{title_start_col}{idx}:{title_end_col}{idx}'
+        ws.merge_cells(cell_range)
         cell = ws[f'{title_start_col}{idx}']
         cell.value = tagline
         cell.font = openpyxl.styles.Font(size=11)
@@ -209,7 +211,7 @@ def create_excel_report(results, output_file):
     # Add some space before the table headers
     start_row = 6  # Start the actual content from row 6
     
-    # Add headers with proper column span
+    # Add headers for content
     headers = ['Image', 'File Name', 'Analysis']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=start_row, column=col, value=header)
@@ -222,25 +224,43 @@ def create_excel_report(results, output_file):
         try:
             if os.path.exists(result['temp_image_path']):
                 img = XLImage(result['temp_image_path'])
-                img.width, img.height = 200, 200
+                img.width = 200
+                img.height = 200
                 ws.add_image(img, f'A{row_idx}')
             
-            ws.cell(row=row_idx, column=2, value=result['name'])
+            # Add file name
+            name_cell = ws.cell(row=row_idx, column=2, value=result['name'])
+            name_cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
+            
+            # Add analysis with proper wrapping
             analysis_cell = ws.cell(row=row_idx, column=3, value=result['analysis'])
             analysis_cell.alignment = openpyxl.styles.Alignment(wrap_text=True, vertical='top')
-            ws.row_dimensions[row_idx].height = max(120, len(result['analysis'].split('\n')) * 15)
+            
+            # Set row height based on content
+            ws.row_dimensions[row_idx].height = max(150, len(result['analysis'].split('\n')) * 15)
             
         except Exception as e:
             st.error(f"Excel error: {str(e)}")
 
     # Adjust column widths
     ws.column_dimensions['A'].width = 30  # For contact info and images
-    ws.column_dimensions['B'].width = 30  # For file names
-    ws.column_dimensions['C'].width = 60  # For analysis
-    
-    # Set row height for header rows
+    ws.column_dimensions['B'].width = 35  # First column of merged header
+    ws.column_dimensions['C'].width = 35  # Second column of merged header
+
+    # Set row heights for header section
     for i in range(1, 5):  # Rows 1-4 (contact info and taglines)
         ws.row_dimensions[i].height = 20
+    
+    # Add borders to content cells
+    content_range = f'A{start_row}:C{len(results) + start_row}'
+    for row in ws[content_range]:
+        for cell in row:
+            cell.border = openpyxl.styles.Border(
+                left=openpyxl.styles.Side(style='thin'),
+                right=openpyxl.styles.Side(style='thin'),
+                top=openpyxl.styles.Side(style='thin'),
+                bottom=openpyxl.styles.Side(style='thin')
+            )
 
     try:
         wb.save(output_file)

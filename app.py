@@ -15,10 +15,11 @@ from database import (
     init_db, get_user_limits, increment_image_count, delete_user, 
     get_all_users, update_user_limit, is_admin, save_report, get_user_reports
 )
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as PDFImage, Paragraph, Spacer
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as PDFImage, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
+from reportlab.lib.units import mm
 from streamlit.components.v1 import html
 import time
 import openpyxl

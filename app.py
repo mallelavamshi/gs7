@@ -65,14 +65,70 @@ def format_time(seconds):
 
 def create_pdf_report(results, output_file):
     """Create PDF report with images and analyses"""
-    doc = SimpleDocTemplate(output_file, pagesize=A4)
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    
+    class CustomDocTemplate(SimpleDocTemplate):
+        def __init__(self, filename, **kwargs):
+            super().__init__(filename, **kwargs)
+            self.topMargin = 15*mm  # Reduced top margin to 15mm
+            self.leftMargin = 25*mm  # Set left margin
+    
+    doc = CustomDocTemplate(output_file, pagesize=A4)
     elements = []
     styles = getSampleStyleSheet()
+    
+    # Create custom styles
+    header_style = styles['Title']
+    header_style.spaceAfter = 5
+    
+    contact_style = styles['Normal']
+    contact_style.fontSize = 9
+    contact_style.leading = 11
+    contact_style.textColor = colors.gray
+    
+    tagline_style = styles['Normal']
+    tagline_style.alignment = 1  # Center alignment
+    tagline_style.fontSize = 11
+    tagline_style.leading = 14
+    tagline_style.spaceAfter = 20
+    
+    # Create a table for layout (contact info and header side by side)
+    contact_info = [
+        [Paragraph("Email: clara@app.estategeniusai.com", contact_style)],
+        [Paragraph("Mobile (Victor): 9136037561", contact_style)]
+    ]
+    contact_table = Table(contact_info, colWidths=[200])
+    contact_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    header_content = [
+        [Paragraph("EstateGenius AI", header_style)],
+        [Paragraph("Your Pricing Partner", tagline_style)],
+        [Paragraph("Saves Hours of Internet Search", tagline_style)],
+        [Paragraph("We Customize AI According to Your Needs", tagline_style)]
+    ]
+    header_table = Table(header_content, colWidths=[300])
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    # Combine contact and header in a single row
+    layout_table = Table([[contact_table, header_table]], colWidths=[200, 300])
+    layout_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    elements.append(layout_table)
+    elements.append(Spacer(1, 20))
 
-    elements.append(Paragraph("EstateGenius AI Report", styles['Title']))
-
+    # Main content table
     data = [["Image", "File Name", "Analysis"]]
-
     for result in results:
         try:
             img = PDFImage(result['temp_image_path'], width=150, height=150)
@@ -110,12 +166,48 @@ def create_excel_report(results, output_file):
     """Create Excel report with images and analyses"""
     wb = openpyxl.Workbook()
     ws = wb.active
-
+    
+    # Add contact information (top left)
+    ws['A1'] = "Email: clara@app.estategeniusai.com"
+    ws['A2'] = "Mobile (Victor): 9136037561"
+    
+    # Style contact info
+    for cell in [ws['A1'], ws['A2']]:
+        cell.font = openpyxl.styles.Font(size=9, color="666666")  # Gray color
+    
+    # Add header and taglines (center aligned)
+    ws.merge_cells('C1:E1')
+    header_cell = ws['C1']
+    header_cell.value = "EstateGenius AI"
+    header_cell.font = openpyxl.styles.Font(size=16, bold=True)
+    header_cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+    
+    # Add taglines
+    taglines = [
+        "Your Pricing Partner",
+        "Saves Hours of Internet Search",
+        "We Customize AI According to Your Needs"
+    ]
+    
+    for idx, tagline in enumerate(taglines, 2):
+        ws.merge_cells(f'C{idx}:E{idx}')
+        cell = ws[f'C{idx}']
+        cell.value = tagline
+        cell.font = openpyxl.styles.Font(size=11)
+        cell.alignment = openpyxl.styles.Alignment(horizontal='center')
+    
+    # Add some space before the table headers
+    start_row = 5  # Start the actual content from row 5
+    
+    # Add headers
     headers = ['Image', 'File Name', 'Analysis']
     for col, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col, value=header).font = openpyxl.styles.Font(bold=True)
+        cell = ws.cell(row=start_row, column=col, value=header)
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = openpyxl.styles.PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
 
-    for row_idx, result in enumerate(results, 2):
+    # Add data
+    for row_idx, result in enumerate(results, start_row + 1):
         try:
             if os.path.exists(result['temp_image_path']):
                 img = XLImage(result['temp_image_path'])
@@ -130,9 +222,12 @@ def create_excel_report(results, output_file):
         except Exception as e:
             st.error(f"Excel error: {str(e)}")
 
+    # Adjust column widths
     ws.column_dimensions['A'].width = 30
     ws.column_dimensions['B'].width = 30
-    ws.column_dimensions['C'].width = 50
+    ws.column_dimensions['C'].width = 30
+    ws.column_dimensions['D'].width = 30
+    ws.column_dimensions['E'].width = 30
 
     try:
         wb.save(output_file)

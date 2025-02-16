@@ -10,126 +10,176 @@ from email.message import EmailMessage
 from database import create_user, verify_user, init_db, DATABASE_NAME
 
 def login_page():
-    # Custom CSS for modern styling
+    # Custom CSS for modern styling with coherent colors
     st.markdown("""
         <style>
             /* Main container styling */
             .stApp {
-                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                background-color: #f8fafc;  /* Light background */
+            }
+            
+            /* Center content vertically */
+            section.main > div:first-child {
+                padding-top: 2rem !important;
             }
             
             /* Card container */
             .auth-container {
                 max-width: 460px;
-                margin: 2rem auto;
-                padding: 2rem;
+                margin: 0 auto 2rem auto;  /* Reduced top margin */
+                padding: 2.5rem;
                 background: white;
-                border-radius: 20px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             }
             
             /* Input fields */
             .stTextInput input {
-                border: 2px solid #e2e8f0;
-                border-radius: 10px;
-                padding: 12px;
+                background-color: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 12px 16px;
                 font-size: 16px;
                 width: 100%;
                 margin-bottom: 1rem;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
             }
             
             .stTextInput input:focus {
-                border-color: #4f46e5;
-                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                background-color: white;
             }
             
             /* Button styling */
             .stButton button {
                 width: 100%;
                 padding: 12px 20px;
-                border-radius: 10px;
-                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                border-radius: 8px;
+                background: #3b82f6;  /* Primary blue */
                 color: white;
                 font-weight: 600;
                 border: none;
                 cursor: pointer;
-                transition: all 0.3s ease;
+                transition: all 0.2s ease;
+                margin-top: 1rem;
             }
             
             .stButton button:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+                background: #2563eb;  /* Darker blue on hover */
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
             }
             
-            /* Logo/branding */
-            .app-logo {
+            /* App title styling */
+            .app-header {
                 text-align: center;
                 margin-bottom: 2rem;
+                padding: 1rem;
             }
             
-            .app-logo img {
-                width: 80px;
-                height: 80px;
+            .app-header h1 {
+                color: #1e293b;
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
             }
             
-            /* Divider */
-            .divider {
-                display: flex;
-                align-items: center;
-                text-align: center;
-                margin: 1.5rem 0;
+            .app-header p {
+                color: #64748b;
+                font-size: 1.1rem;
             }
             
-            .divider::before,
-            .divider::after {
-                content: "";
-                flex: 1;
-                border-bottom: 1px solid #e2e8f0;
+            /* Tabs styling */
+            .stTabs {
+                background: white;
+                border-radius: 12px;
+                padding: 1rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             }
             
-            .divider span {
-                padding: 0 1rem;
+            /* Error messages */
+            .stAlert {
+                background-color: #fee2e2;
+                border-left: 4px solid #ef4444;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 6px;
+                color: #991b1b;
+            }
+            
+            /* Success messages */
+            .stSuccess {
+                background-color: #dcfce7;
+                border-left: 4px solid #22c55e;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 6px;
+                color: #166534;
+            }
+            
+            /* Links */
+            a {
+                color: #3b82f6;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            
+            a:hover {
+                color: #2563eb;
+                text-decoration: underline;
+            }
+            
+            /* Checkbox styling */
+            .stCheckbox {
                 color: #64748b;
                 font-size: 14px;
             }
             
-            /* Error messages */
-            .error-msg {
-                background: #fee2e2;
-                border-left: 4px solid #ef4444;
+            /* Password requirements box */
+            .password-requirements {
+                background: #f8fafc;
                 padding: 1rem;
+                border-radius: 8px;
                 margin: 1rem 0;
-                border-radius: 4px;
-                color: #b91c1c;
+                border: 1px solid #e2e8f0;
             }
             
-            /* Success messages */
-            .success-msg {
-                background: #dcfce7;
-                border-left: 4px solid #22c55e;
-                padding: 1rem;
-                margin: 1rem 0;
-                border-radius: 4px;
-                color: #15803d;
+            .password-requirements p {
+                color: #64748b;
+                font-size: 14px;
+                margin-bottom: 0.5rem;
+            }
+            
+            .password-requirements ul {
+                color: #64748b;
+                font-size: 14px;
+                margin: 0;
+                padding-left: 1.5rem;
+            }
+            
+            /* Remove extra padding from Streamlit */
+            .block-container {
+                padding-top: 1rem !important;
+                padding-bottom: 0rem !important;
+                max-width: 100%;
             }
         </style>
     """, unsafe_allow_html=True)
 
+    # App header with logo and title
+    st.markdown("""
+        <div class="app-header">
+            <h1>🔍 EstateGenius AI</h1>
+            <p>Smart Real Estate Analysis Platform</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
     # Center the content
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # App logo and title
-        st.markdown("""
-            <div class="app-logo">
-                <h1>🔍 EstateGenius AI</h1>
-                <p style="color: #64748b; text-align: center;">Intelligent Real Estate Analysis</p>
-            </div>
-        """, unsafe_allow_html=True)
-        
         # Login/Register tabs
-        tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
+        tab1, tab2 = st.tabs(["Sign In", "Create Account"])
         
         with tab1:
             st.markdown('<div class="auth-container">', unsafe_allow_html=True)
@@ -139,16 +189,17 @@ def login_page():
                 username = st.text_input("Username", placeholder="Enter your username")
                 password = st.text_input("Password", type="password", placeholder="Enter your password")
                 
-                # Remember me and Forgot password
-                col1, col2 = st.columns(2)
-                with col1:
-                    remember = st.checkbox("Remember me")
-                with col2:
-                    st.markdown('<div style="text-align: right;"><a href="#" style="color: #4f46e5; text-decoration: none; font-size: 14px;">Forgot password?</a></div>', unsafe_allow_html=True)
+                # Remember me and Forgot password in two columns
+                cols = st.columns([3, 2])
+                with cols[0]:
+                    st.checkbox("Remember me", key="remember")
+                with cols[1]:
+                    st.markdown('<div style="text-align: right;"><a href="#">Forgot password?</a></div>', 
+                              unsafe_allow_html=True)
                 
-                submit_button = st.form_submit_button("Sign In")
+                submit = st.form_submit_button("Sign In")
                 
-                if submit_button:
+                if submit:
                     if not username or not password:
                         st.error("Please fill in all fields")
                     else:
@@ -174,13 +225,13 @@ def login_page():
                 
                 # Password requirements info
                 st.markdown("""
-                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                        <p style="color: #64748b; font-size: 14px; margin-bottom: 0.5rem;">Password requirements:</p>
-                        <ul style="color: #64748b; font-size: 14px; margin: 0; padding-left: 1.5rem;">
-                            <li>At least 8 characters long</li>
-                            <li>Contains at least one number</li>
-                            <li>Contains at least one special character</li>
-                            <li>Contains at least one uppercase letter</li>
+                    <div class="password-requirements">
+                        <p><strong>Password requirements:</strong></p>
+                        <ul>
+                            <li>At least 8 characters</li>
+                            <li>One uppercase letter</li>
+                            <li>One number</li>
+                            <li>One special character (!@#$%^&*)</li>
                         </ul>
                     </div>
                 """, unsafe_allow_html=True)
@@ -188,7 +239,6 @@ def login_page():
                 register_button = st.form_submit_button("Create Account")
                 
                 if register_button:
-                    # Validation
                     if not all([new_username, email, new_password, confirm_password]):
                         st.error("Please fill in all fields")
                     elif new_password != confirm_password:
@@ -208,7 +258,7 @@ def login_page():
                             verification_code = str(random.randint(100000, 999999))
                             if create_user(new_username, email, new_password, verification_code):
                                 send_verification_email(email, verification_code)
-                                st.success("Account created successfully! Please check your email for verification.")
+                                st.success("Account created! Please check your email for verification.")
                             else:
                                 st.error("Username or email already exists")
             

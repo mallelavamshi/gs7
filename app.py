@@ -100,7 +100,7 @@ def create_pdf_report(results, output_file):
     # Create a table for layout (contact info and header side by side)
     contact_info = [
         [Paragraph("Email: clara@app.estategeniusai.com", contact_style)],
-        [Paragraph("Mobile: (+)4696597089", contact_style)],
+        [Paragraph("Mobile: (+1)4696597089", contact_style)],
         [Paragraph("Website: www.estategeniusai.com", contact_style)]
     ]
     contact_table = Table(contact_info, colWidths=[200])

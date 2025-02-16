@@ -5,298 +5,218 @@ import time
 import smtplib
 import os
 import logging
+import re
 from email.message import EmailMessage
 from database import create_user, verify_user, init_db, DATABASE_NAME
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize database
-init_db()
-
-# Session state keys
-SESSION_USER_KEY = "authenticated_user"
-VERIFICATION_EXPIRY = 60  # 30 minutes
-
-def generate_verification_code() -> str:
-    return str(random.randint(100000, 999999))
-
-def send_verification_email(email: str, code: str):
-    """Send verification email using SMTP"""
-    try:
-        msg = EmailMessage()
-        msg['Subject'] = "Your Verification Code"
-        msg['From'] = os.getenv("SMTP_USER", "hello@cognovaai.com")
-        msg['To'] = email
-        msg.set_content(f"Your verification code is: {code}")
-
-        with smtplib.SMTP_SSL(os.getenv("SMTP_SERVER", "smtp.hostinger.com"),
-                              int(os.getenv("SMTP_PORT", 465))) as server:
-            server.login(os.getenv("SMTP_USER", "hello@cognovaai.com"),
-                         os.getenv("SMTP_PASSWORD", "Tulips@143"))
-            server.send_message(msg)
-        
-        logger.info(f"Verification email sent to {email}")
-
-    except Exception as e:
-        st.error(f"Failed to send email: {str(e)}")
-        logger.error(f"Email sending failed: {str(e)}")
-
-def verify_code(email: str, code: str) -> bool:
-    """Verify code against database"""
-    try:
-        conn = sqlite3.connect(DATABASE_NAME)
-        c = conn.cursor()
-        c.execute('''SELECT verification_code, code_created_at 
-                     FROM users WHERE email = ?''', (email,))
-        result = c.fetchone()
-        
-        if not result or time.time() - result[1] > VERIFICATION_EXPIRY:
-            return False
-        return code == result[0]
-    except sqlite3.Error as e:
-        logger.error(f"Code verification failed: {str(e)}")
-        return False
-    finally:
-        if 'conn' in locals():
-            conn.close()
-
-def registration_form():
-    """Two-step registration form"""
-    if 'reg_email' not in st.session_state:
-        with st.form("Register Step 1"):
-            email = st.text_input("Email")
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            
-            if st.form_submit_button("Continue"):
-                code = generate_verification_code()
-                if create_user(username, email, password, code):
-                    send_verification_email(email, code)
-                    st.session_state.reg_email = email
-                    st.session_state.code_time = time.time()
-                    st.rerun()
-                else:
-                    st.error("Username/Email already exists")
-    else:
-        email = st.session_state.reg_email
-        elapsed = time.time() - st.session_state.code_time
-        remaining = max(0, VERIFICATION_EXPIRY - int(elapsed))
-        
-        with st.form("Register Step 2"):
-            code = st.text_input("6-digit Code", max_chars=6)
-            
-            if st.form_submit_button("Verify"):
-                if verify_code(email, code):
-                    try:
-                        conn = sqlite3.connect(DATABASE_NAME)
-                        conn.execute("UPDATE users SET verified=1 WHERE email=?", (email,))
-                        conn.commit()
-                        st.success("Verification successful! Please login")
-                        del st.session_state.reg_email
-                        st.rerun()
-                    except sqlite3.Error as e:
-                        st.error(f"Database error: {str(e)}")
-                        logger.error(f"User verification update failed: {str(e)}")
-                    finally:
-                        if 'conn' in locals():
-                            conn.close()
-                else:
-                    st.error("Invalid code or expired")
-        
-        if st.button("Resend Code", disabled=remaining > 0):
-            new_code = generate_verification_code()
-            send_verification_email(email, new_code)
-            try:
-                conn = sqlite3.connect(DATABASE_NAME)
-                conn.execute("UPDATE users SET verification_code=?, code_created_at=? WHERE email=?",
-                            (new_code, time.time(), email))
-                conn.commit()
-                st.session_state.code_time = time.time()
-                st.rerun()
-            except sqlite3.Error as e:
-                st.error(f"Database error: {str(e)}")
-                logger.error(f"Code resend failed: {str(e)}")
-            finally:
-                if 'conn' in locals():
-                    conn.close()
-        
-        if remaining > 0:
-            st.caption(f"Resend available in {remaining//60}:{remaining%60:02}")
-
-def login_form():
-    """User login form with modern design"""
-    with st.form("Login"):
-        st.markdown("""
-            <style>
-                /* Main form container */
-                div[data-testid="stForm"] {
-                    max-width: 500px;
-                    margin: 2rem auto;
-                    padding: 2.5rem;
-                    border-radius: 16px;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-                    background: #ffffff;
-                }
-
-                /* Input fields */
-                .stTextInput input, .stPassword input {
-                    width: 100% !important;
-                    padding: 14px 16px !important;
-                    border: 1px solid #e0e0e0 !important;
-                    border-radius: 8px !important;
-                    font-size: 16px !important;
-                    transition: all 0.3s ease !important;
-                }
-
-                .stTextInput input:focus, .stPassword input:focus {
-                    border-color: #6366f1 !important;
-                    box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
-                }
-
-                /* Labels */
-                .stTextInput label, .stPassword label {
-                    font-weight: 500 !important;
-                    color: #374151 !important;
-                    font-size: 14px !important;
-                    margin-bottom: 8px !important;
-                }
-
-                /* Login button */
-                .stButton button {
-                    width: 100% !important;
-                    padding: 14px 20px !important;
-                    background: linear-gradient(45deg, #6366f1, #8b5cf6) !important;
-                    color: white !important;
-                    border: none !important;
-                    border-radius: 8px !important;
-                    font-weight: 600 !important;
-                    font-size: 16px !important;
-                    transition: all 0.3s ease !important;
-                    margin-top: 1.5rem !important;
-                }
-
-                .stButton button:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(99,102,241,0.25) !important;
-                }
-
-                /* Error messages */
-                .stAlert {
-                    max-width: 500px !important;
-                    margin: 1rem auto !important;
-                    border-radius: 8px !important;
-                }
-
-                /* Mobile responsiveness */
-                @media (max-width: 600px) {
-                    div[data-testid="stForm"] {
-                        margin: 1rem;
-                        padding: 1.5rem;
-                    }
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<h2 style='text-align: center; margin-bottom: 2rem; color: #1f2937;'>Welcome Back 👋</h2>", 
-                    unsafe_allow_html=True)
-        
-        username = st.text_input("Username", key="username")
-        password = st.text_input("Password", type="password", key="password")
-        
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.checkbox("Remember me")
-        with col2:
-            st.markdown("<div style='text-align: right; margin-top: 8px;'>"
-                        "<a href='#' style='color: #6366f1; text-decoration: none; font-size: 14px;'>"
-                        "Forgot password?</a></div>", unsafe_allow_html=True)
-
-        if st.form_submit_button("Sign In"):
-            if verify_user(username, password):
-                try:
-                    conn = sqlite3.connect(DATABASE_NAME)
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT verified FROM users WHERE username=?", (username,))
-                    result = cursor.fetchone()
-                    
-                    if result and result[0]:
-                        st.session_state[SESSION_USER_KEY] = username
-                        st.rerun()
-                    else:
-                        st.error("Email not verified")
-                except sqlite3.Error as e:
-                    st.error(f"Database error: {str(e)}")
-                    logger.error(f"Login database error: {str(e)}")
-                finally:
-                    if 'conn' in locals():
-                        conn.close()
-            else:
-                st.error("Invalid credentials")
-
-def authentication_page():
-    """Authentication flow controller"""
+def login_page():
+    # Custom CSS for modern styling
     st.markdown("""
         <style>
-            /* Center align the tabs */
-            div[data-testid="stTabs"] {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
+            /* Main container styling */
+            .stApp {
+                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             }
             
-            /* Style for tab buttons */
-            button[data-baseweb="tab"] {
-                padding: 12px 24px;
-                margin: 0 8px;
-                border-radius: 8px !important;
+            /* Card container */
+            .auth-container {
+                max-width: 460px;
+                margin: 2rem auto;
+                padding: 2rem;
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            }
+            
+            /* Input fields */
+            .stTextInput input {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 12px;
+                font-size: 16px;
+                width: 100%;
+                margin-bottom: 1rem;
                 transition: all 0.3s ease;
             }
             
-            /* Active tab styling */
-            button[data-baseweb="tab"][aria-selected="true"] {
-                background: #6366f1 !important;
-                color: white !important;
+            .stTextInput input:focus {
+                border-color: #4f46e5;
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
             }
             
-            /* Form container styling */
-            .main .block-container {
-                max-width: 800px;
-                padding: 2rem;
+            /* Button styling */
+            .stButton button {
+                width: 100%;
+                padding: 12px 20px;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                color: white;
+                font-weight: 600;
+                border: none;
+                cursor: pointer;
+                transition: all 0.3s ease;
             }
             
-            /* Center the form content */
-            div[data-testid="stForm"] {
-                margin: 0 auto;
-                max-width: 500px;
+            .stButton button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
             }
             
-            /* Title styling */
-            h1 {
-                text-align: center !important;
-                margin-bottom: 2rem !important;
+            /* Logo/branding */
+            .app-logo {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            
+            .app-logo img {
+                width: 80px;
+                height: 80px;
+            }
+            
+            /* Divider */
+            .divider {
+                display: flex;
+                align-items: center;
+                text-align: center;
+                margin: 1.5rem 0;
+            }
+            
+            .divider::before,
+            .divider::after {
+                content: "";
+                flex: 1;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            
+            .divider span {
+                padding: 0 1rem;
+                color: #64748b;
+                font-size: 14px;
+            }
+            
+            /* Error messages */
+            .error-msg {
+                background: #fee2e2;
+                border-left: 4px solid #ef4444;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 4px;
+                color: #b91c1c;
+            }
+            
+            /* Success messages */
+            .success-msg {
+                background: #dcfce7;
+                border-left: 4px solid #22c55e;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 4px;
+                color: #15803d;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1>🔑 Authentication</h1>", unsafe_allow_html=True)
+    # Center the content
+    col1, col2, col3 = st.columns([1, 2, 1])
     
-    login_tab, reg_tab = st.tabs(["Login", "Register"])
-    with login_tab:
-        login_form()
-    with reg_tab:
-        registration_form()
-
-def logout():
-    """Logout user"""
-    st.session_state.pop(SESSION_USER_KEY, None)
-    st.success("Logged out successfully!")
+    with col2:
+        # App logo and title
+        st.markdown("""
+            <div class="app-logo">
+                <h1>🔍 EstateGenius AI</h1>
+                <p style="color: #64748b; text-align: center;">Intelligent Real Estate Analysis</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Login/Register tabs
+        tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
+        
+        with tab1:
+            st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+            
+            # Login form
+            with st.form("login_form"):
+                username = st.text_input("Username", placeholder="Enter your username")
+                password = st.text_input("Password", type="password", placeholder="Enter your password")
+                
+                # Remember me and Forgot password
+                col1, col2 = st.columns(2)
+                with col1:
+                    remember = st.checkbox("Remember me")
+                with col2:
+                    st.markdown('<div style="text-align: right;"><a href="#" style="color: #4f46e5; text-decoration: none; font-size: 14px;">Forgot password?</a></div>', unsafe_allow_html=True)
+                
+                submit_button = st.form_submit_button("Sign In")
+                
+                if submit_button:
+                    if not username or not password:
+                        st.error("Please fill in all fields")
+                    else:
+                        with st.spinner("Signing in..."):
+                            if verify_user(username, password):
+                                st.session_state.authenticated_user = username
+                                st.success("Login successful!")
+                                st.rerun()
+                            else:
+                                st.error("Invalid username or password")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with tab2:
+            st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+            
+            # Registration form
+            with st.form("register_form"):
+                new_username = st.text_input("Username", placeholder="Choose a username", key="reg_username")
+                email = st.text_input("Email", placeholder="Enter your email", key="reg_email")
+                new_password = st.text_input("Password", type="password", placeholder="Choose a password", key="reg_password")
+                confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
+                
+                # Password requirements info
+                st.markdown("""
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <p style="color: #64748b; font-size: 14px; margin-bottom: 0.5rem;">Password requirements:</p>
+                        <ul style="color: #64748b; font-size: 14px; margin: 0; padding-left: 1.5rem;">
+                            <li>At least 8 characters long</li>
+                            <li>Contains at least one number</li>
+                            <li>Contains at least one special character</li>
+                            <li>Contains at least one uppercase letter</li>
+                        </ul>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                register_button = st.form_submit_button("Create Account")
+                
+                if register_button:
+                    # Validation
+                    if not all([new_username, email, new_password, confirm_password]):
+                        st.error("Please fill in all fields")
+                    elif new_password != confirm_password:
+                        st.error("Passwords do not match")
+                    elif len(new_password) < 8:
+                        st.error("Password must be at least 8 characters long")
+                    elif not re.search(r"[A-Z]", new_password):
+                        st.error("Password must contain at least one uppercase letter")
+                    elif not re.search(r"\d", new_password):
+                        st.error("Password must contain at least one number")
+                    elif not re.search(r"[!@#$%^&*]", new_password):
+                        st.error("Password must contain at least one special character")
+                    elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+                        st.error("Please enter a valid email address")
+                    else:
+                        with st.spinner("Creating your account..."):
+                            verification_code = str(random.randint(100000, 999999))
+                            if create_user(new_username, email, new_password, verification_code):
+                                send_verification_email(email, verification_code)
+                                st.success("Account created successfully! Please check your email for verification.")
+                            else:
+                                st.error("Username or email already exists")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def authenticated_layout(main_app_function):
     """Authentication wrapper"""
-    if SESSION_USER_KEY in st.session_state:
-        st.sidebar.button("Logout", on_click=logout, key="sidebar_logout")
+    if "authenticated_user" in st.session_state:
         main_app_function()
     else:
-        authentication_page()
+        login_page()

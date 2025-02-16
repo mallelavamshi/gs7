@@ -107,49 +107,62 @@ def get_user_reports(username: str):
 
     return reports
 
+def validate_password(password: str) -> Dict[str, bool]:
+    """
+    Validate password against security requirements
+    Returns a dictionary of validation results
+    """
+    return {
+        'length': len(password) >= 8,
+        'uppercase': bool(re.search(r'[A-Z]', password)),
+        'number': bool(re.search(r'\d', password)),
+        'special': bool(re.search(r'[!@#$%^&*]', password))
+    }
 
-
-# Rest of the database functions remain the same as previous version
-
-# (create_user, verify_user, get_user_limits, etc.)
-
-def create_user(username: str, email: str, password: str, code: str) -> bool:
-
-    """Create new user with verification code"""
-
+def create_user(username: str, email: str, password: str, code: str) -> Union[bool, str]:
+    """
+    Create new user with validation
+    Returns True if successful, error message string if validation fails
+    """
     try:
-
-        # Use bcrypt directly instead of passlib
-
-        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
-        # Decode to store as string
-
-        hashed_str = hashed.decode('utf-8')  
-
+        # Validate password requirements
+        password_checks = validate_password(password)
         
+        if not all(password_checks.values()):
+            # Construct error message based on which requirements failed
+            errors = []
+            if not password_checks['length']:
+                errors.append("Password must be at least 8 characters long")
+            if not password_checks['uppercase']:
+                errors.append("Password must contain at least one uppercase letter")
+            if not password_checks['number']:
+                errors.append("Password must contain at least one number")
+            if not password_checks['special']:
+                errors.append("Password must contain at least one special character")
+            return ", ".join(errors)
+
+        # Validate email format
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            return "Invalid email format"
+
+        # If all validations pass, hash and store the password
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        hashed_str = hashed.decode('utf-8')
 
         with sqlite3.connect(DATABASE_NAME) as conn:
-
             c = conn.cursor()
-
             c.execute('''INSERT INTO users 
-
                         (username, email, password_hash, verification_code, code_created_at)
-
                         VALUES (?, ?, ?, ?, ?)''',
-
                      (username, email, hashed_str, code, time.time()))
-
             conn.commit()
-
         return True
 
-    except sqlite3.IntegrityError as e:
-
-        print(f"Database error: {e}")
-
-        return False
+    except sqlite3.IntegrityError:
+        return "Username or email already exists"
+    except Exception as e:
+        logger.error(f"Error creating user: {str(e)}")
+        return "An error occurred while creating the user"
 
 
 def verify_user(username: str, password: str) -> bool:

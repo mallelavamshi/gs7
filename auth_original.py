@@ -72,7 +72,7 @@ def login_page():
            
            /* Tab styling */
            .stTabs {
-               margin-top: 1rem;
+               margin-top: 0.2rem;
            }
            
            /* Input fields */
@@ -103,7 +103,7 @@ def login_page():
                border: none;
                cursor: pointer;
                transition: all 0.2s ease;
-               margin-top: 0.5rem;
+               margin-top: 0.2rem;
            }
            
            .stButton button:hover {
@@ -147,7 +147,7 @@ def login_page():
            .form-container {
                max-width: 360px;
                margin: 0 auto;
-               padding: 0 1rem;
+               padding: 0 0.3rem;
            }
            
            /* Checkbox styling */
@@ -158,8 +158,8 @@ def login_page():
            
            /* Utility classes */
            .text-center { text-align: center; }
-           .mt-2 { margin-top: 0.5rem; }
-           .mb-4 { margin-bottom: 1rem; }
+           .mt-2 { margin-top: 0.2rem; }
+           .mb-4 { margin-bottom: 3rem; }
        </style>
    """, unsafe_allow_html=True)
 

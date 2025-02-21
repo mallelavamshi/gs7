@@ -14,7 +14,7 @@ def login_page():
         <style>
             /* Reset all default margins and paddings */
             .stApp {
-                background-color: #FFFFFF !important;
+                background-color: #FAFBFF !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 margin-top: -2rem !important;
@@ -58,7 +58,7 @@ def login_page():
             }
             
             .logo-container h1 {
-                color: #1E2E4A;
+                color: #FF8C77;
                 font-size: 26px;
                 font-weight: 600;
                 margin: -10px 0;
@@ -67,7 +67,7 @@ def login_page():
             }
             
             .logo-container p {
-                color: #64748B;
+                color: #FF8C77;
                 font-size: 14px;
                 margin-top: 0px;
                 margin-bottom: -2rem;

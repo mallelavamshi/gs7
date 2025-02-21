@@ -14,7 +14,7 @@ def login_page():
         <style>
             /* Reset all default margins and paddings */
             .stApp {
-                background-color: #D2B48C !important;
+                background-color: #000000 !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 margin-top: -2rem !important;

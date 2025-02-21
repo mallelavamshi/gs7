@@ -99,7 +99,7 @@ def create_pdf_report(results, output_file):
     
     # Create a table for layout (contact info and header side by side)
     contact_info = [
-        [Paragraph("Email: clara@app.estategeniusai.com", contact_style)],
+        [Paragraph("Email: clara@estategeniusai.com", contact_style)],
         [Paragraph("Mobile: (+1)4696597089", contact_style)],
         [Paragraph("Website: www.estategeniusai.com", contact_style)]
     ]
@@ -172,8 +172,8 @@ def create_excel_report(results, output_file):
     ws = wb.active
     
     # Add contact information (top left)
-    ws['A1'] = "Email: clara@app.estategeniusai.com"
-    ws['A2'] = "Mobile: (+)4696597089"
+    ws['A1'] = "Email: clara@estategeniusai.com"
+    ws['A2'] = "Mobile: (+)469-659-7089"
     ws['A3'] = "Website: www.estategeniusai.com"
     
     # Style contact info

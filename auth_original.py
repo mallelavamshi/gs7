@@ -70,12 +70,12 @@ def login_page():
                 color: #64748B;
                 font-size: 14px;
                 margin-top: 2px;
-                margin-bottom: -2rem;
+                margin-bottom: 0rem;
             }
             
             /* Tab styling */
             .stTabs {
-                margin-top: 0.2rem;
+                margin-top: -2rem;
             }
             
             /* Input fields */
@@ -91,8 +91,21 @@ def login_page():
             }
             
             .stTextInput input:focus {
-                border-color: #4F46E5;
-                outline: none;
+                border-color: #4F46E5 !important;
+                outline: none !important;
+                box-shadow: none !important;
+            }
+            
+            /* Remove red border on invalid inputs */
+            .stTextInput input:invalid {
+                border-color: #E5E9F2 !important;
+                box-shadow: none !important;
+            }
+            
+            /* Remove red border on required inputs */
+            .stTextInput input[aria-invalid="true"] {
+                border-color: #E5E9F2 !important;
+                box-shadow: none !important;
             }
             
             /* Button styling */

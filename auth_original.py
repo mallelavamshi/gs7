@@ -173,6 +173,24 @@ def login_page():
                 font-size: 0.9rem;
             }
             
+            /* Contact message styling */
+            .contact-message {
+                text-align: center;
+                padding: 2rem 1rem;
+                color: #1E2E4A;
+            }
+            
+            .contact-message p {
+                margin: 0.5rem 0;
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+            
+            .contact-email {
+                color: #D97757;
+                font-weight: 500;
+            }
+            
             /* Utility classes */
             .text-center { text-align: center; }
             .mt-2 { margin-top: 0.5rem; }
@@ -226,51 +244,12 @@ def login_page():
                 st.markdown('</div>', unsafe_allow_html=True)
         
         with tab2:
-            with st.form("register_form", clear_on_submit=True):
-                st.markdown('<div class="form-container">', unsafe_allow_html=True)
-                new_username = st.text_input("Username", placeholder="Choose a username", key="reg_username")
-                email = st.text_input("Email", placeholder="Enter your email", key="reg_email")
-                new_password = st.text_input("Password", type="password", placeholder="Choose a password", key="reg_password")
-                confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
-                
-                st.markdown("""
-                    <div style="font-size: 12px; color: #64748B; padding: 12px; margin: 8px 0; border-radius: 6px;">
-                        <strong>Password requirements:</strong>
-                        <ul style="margin: 4px 0 0 16px; padding: 0;">
-                            <li>Minimum 8 characters</li>
-                            <li>One uppercase letter</li>
-                            <li>One number</li>
-                            <li>One special character (!@#$%^&*)</li>
-                        </ul>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                register_button = st.form_submit_button("Create Account")
-                
-                if register_button:
-                    if not all([new_username, email, new_password, confirm_password]):
-                        st.error("Please fill in all fields")
-                    elif new_password != confirm_password:
-                        st.error("Passwords do not match")
-                    elif len(new_password) < 8:
-                        st.error("Password must be at least 8 characters long")
-                    elif not re.search(r"[A-Z]", new_password):
-                        st.error("Password must contain at least one uppercase letter")
-                    elif not re.search(r"\d", new_password):
-                        st.error("Password must contain at least one number")
-                    elif not re.search(r"[!@#$%^&*]", new_password):
-                        st.error("Password must contain at least one special character")
-                    elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-                        st.error("Please enter a valid email address")
-                    else:
-                        with st.spinner("Creating your account..."):
-                            verification_code = str(random.randint(100000, 999999))
-                            if create_user(new_username, email, new_password, verification_code):
-                                send_verification_email(email, verification_code)
-                                st.success("Account created! Please check your email for verification.")
-                            else:
-                                st.error("Username or email already exists")
-                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("""
+                <div class="contact-message">
+                    <p>Please contact us for new account</p>
+                    <p class="contact-email">contact: clara@estategeniusai.com</p>
+                </div>
+            """, unsafe_allow_html=True)
 
 def authenticated_layout(main_app_function):
    """Authentication wrapper"""

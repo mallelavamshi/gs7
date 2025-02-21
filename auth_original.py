@@ -76,7 +76,7 @@ def login_page():
             
             /* Tab styling */
             .stTabs {
-                margin-top: 0rem;
+                margin-top: 0.3rem;
             }
             
             /* Input fields */

@@ -11,3 +11,7 @@ app_replica.py
 app2.py
 app3.py
 app4.py
+template.html
+template2.html
+template3.html
+auth_original_registration.py

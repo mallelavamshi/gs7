@@ -1,3 +1,6 @@
+#REGISTRATION_ENABLED = False  # Set to True when you want to enable registration
+#When you want to enable registration:
+#Simply change the flag to True
 import streamlit as st
 import sqlite3
 import random

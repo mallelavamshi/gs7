@@ -61,7 +61,7 @@ def login_page():
                 color: #1E2E4A;
                 font-size: 26px;
                 font-weight: 600;
-                margin: 0px 0;
+                margin: -10px 0;
                 display: inline-block;
                 vertical-align: middle;
             }
@@ -70,7 +70,7 @@ def login_page():
                 color: #64748B;
                 font-size: 14px;
                 margin-top: 0px;
-                margin-bottom: 0rem;
+                margin-bottom: -2rem;
                 line-height: 1;
             }
             

@@ -45,7 +45,7 @@ def login_page():
            
            /* Logo and title container */
            .logo-container {
-               padding-top: 1.5rem;
+               padding-top: 0rem;
                text-align: center;
            }
            

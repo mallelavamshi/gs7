@@ -41,7 +41,7 @@ def login_page():
 
             /* Main container styling */
             .stApp {
-                background-color: #FAFBFF;
+                background-color: #F3F1EA;
                 margin-top: -6rem !important;
             }
             
@@ -58,7 +58,7 @@ def login_page():
             }
             
             .logo-container h1 {
-                color: #FF8C77;
+                color: #D97757;
                 font-size: 26px;
                 font-weight: 600;
                 margin: -10px 0;
@@ -67,7 +67,7 @@ def login_page():
             }
             
             .logo-container p {
-                color: #FF8C77;
+                color: #D97757;
                 font-size: 14px;
                 margin-top: 0px;
                 margin-bottom: -2rem;

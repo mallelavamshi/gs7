@@ -136,11 +136,10 @@ def create_pdf_report(results, output_file):
     for result in results:
         try:
             img = PDFImage(result['temp_image_path'], width=150, height=150)
-            # Combine filename and analysis
-            combined_analysis = f"Item: {result['name']}\n\n{result['analysis']}"
+            # Use only the analysis
             row = [
                 img,
-                Paragraph(combined_analysis, styles['BodyText'])
+                Paragraph(result['analysis'], styles['BodyText'])
             ]
             data.append(row)
         except Exception as e:
@@ -230,13 +229,12 @@ def create_excel_report(results, output_file):
                 img.height = 200
                 ws.add_image(img, f'A{row_idx}')
             
-            # Combine filename and analysis in second column
-            combined_analysis = f"Item: {result['name']}\n\n{result['analysis']}"
-            analysis_cell = ws.cell(row=row_idx, column=2, value=combined_analysis)
+            # Use only the analysis in second column
+            analysis_cell = ws.cell(row=row_idx, column=2, value=result['analysis'])
             analysis_cell.alignment = openpyxl.styles.Alignment(wrap_text=True, vertical='top')
             
             # Set row height based on content
-            ws.row_dimensions[row_idx].height = max(150, len(combined_analysis.split('\n')) * 15)
+            ws.row_dimensions[row_idx].height = max(150, len(result['analysis'].split('\n')) * 15)
             
         except Exception as e:
             st.error(f"Excel error: {str(e)}")

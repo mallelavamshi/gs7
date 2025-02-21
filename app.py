@@ -102,32 +102,52 @@ def create_pdf_report(results, output_file):
     tagline_style.leading = 14
     tagline_style.spaceAfter = 20
     
-    # Contact info in the left with specific margins
+    # Create header table with title and contact info
+    header_style.textColor = colors.HexColor('#D97757')  # Set title color
+    header_style.alignment = 1  # Center alignment
+    
+    # Contact info in the right column
     contact_info = [
         [Paragraph("Email: clara@estategeniusai.com", contact_style)],
         [Paragraph("Mobile: (+1)4696597089", contact_style)],
         [Paragraph("Website: www.estategeniusai.com", contact_style)]
     ]
+    
+    # Title and taglines in the center column
+    title_content = [
+        [Paragraph("EstateGenius AI", header_style)],
+        [Paragraph("Your Pricing Partner", tagline_style)],
+        [Paragraph("Saves Hours of Internet Search", tagline_style)],
+        [Paragraph("We Customize AI According to Your Needs", tagline_style)]
+    ]
+    
+    # Create tables for each section
     contact_table = Table(contact_info, colWidths=[200])
+    title_table = Table(title_content, colWidths=[300])
+    
+    # Style the tables
     contact_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10*mm),  # 10mm left margin
-        ('TOPPADDING', (0, 0), (-1, -1), 10*mm),   # 10mm top margin
     ]))
-    elements.append(contact_table)
     
-    # Add some space between contact info and title
-    elements.append(Spacer(1, 20))
+    title_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
     
-    # Title and taglines centered on the page
-    elements.append(Paragraph("EstateGenius AI", header_style))
-    elements.append(Spacer(1, 10))
-    elements.append(Paragraph("Your Pricing Partner", tagline_style))
-    elements.append(Paragraph("Saves Hours of Internet Search", tagline_style))
-    elements.append(Paragraph("We Customize AI According to Your Needs", tagline_style))
+    # Create a table for the header layout
+    header_layout = Table([
+        ['', title_table, contact_table]
+    ], colWidths=[20, 300, 200])  # Added small left margin
     
-    elements.append(Spacer(1, 20))
+    header_layout.setStyle(TableStyle([
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),  # Center title
+        ('ALIGN', (2, 0), (2, 0), 'RIGHT'),   # Right align contact
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    elements.append(header_layout)
     elements.append(Spacer(1, 20))
 
     # Modified table with only two columns

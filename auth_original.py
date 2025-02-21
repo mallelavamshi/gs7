@@ -77,8 +77,9 @@ def login_page():
            
            /* Input fields */
            .stTextInput input {
+               background-color: white !important;
                border: 1px solid #E5E9F2;
-               border-radius: 8px;
+               border-radius: 6px;
                padding: 12px 16px;
                font-size: 14px;
                width: 100%;

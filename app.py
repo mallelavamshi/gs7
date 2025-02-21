@@ -7,6 +7,7 @@ import anthropic
 import pandas as pd
 from PIL import Image
 from io import BytesIO
+from reportlab.platypus import Frame
 from datetime import datetime, timedelta
 import base64
 from dotenv import load_dotenv
@@ -101,38 +102,41 @@ def create_pdf_report(results, output_file):
     tagline_style.leading = 14
     tagline_style.spaceAfter = 20
     
-    # Create a table for layout (contact info and header side by side)
+    # Create header with title and taglines centered
+    header_style.textColor = colors.HexColor('#D97757')  # Set title color
+    header_style.alignment = 1  # Center alignment
+    
+    elements.append(Paragraph("EstateGenius AI", header_style))
+    elements.append(Paragraph("Your Pricing Partner", tagline_style))
+    elements.append(Paragraph("Saves Hours of Internet Search", tagline_style))
+    elements.append(Paragraph("We Customize AI According to Your Needs", tagline_style))
+    
+    # Add contact info in top right
+    contact_frame = Frame(
+        doc.pagesize[0] - doc.rightMargin - 200,  # x position
+        doc.pagesize[1] - doc.topMargin - 30,     # y position
+        200,                                       # width
+        50,                                        # height
+        leftPadding=0,
+        bottomPadding=0,
+        rightPadding=0,
+        topPadding=0
+    )
+    
     contact_info = [
         [Paragraph("Email: clara@estategeniusai.com", contact_style)],
         [Paragraph("Mobile: (+1)4696597089", contact_style)],
         [Paragraph("Website: www.estategeniusai.com", contact_style)]
     ]
-    contact_table = Table(contact_info, colWidths=[200])
+    contact_table = Table(contact_info)
     contact_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
     
-    header_content = [
-        [Paragraph("EstateGenius AI", header_style)],
-        [Paragraph("Your Pricing Partner", tagline_style)],
-        [Paragraph("Saves Hours of Internet Search", tagline_style)],
-        [Paragraph("We Customize AI According to Your Needs", tagline_style)]
-    ]
-    header_table = Table(header_content, colWidths=[300])
-    header_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-    
-    layout_table = Table([[contact_table, header_table]], colWidths=[200, 300])
-    layout_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-    ]))
-    
-    elements.append(layout_table)
+    contact_story = []
+    contact_story.append(contact_table)
+    contact_frame.addFromList(contact_story, doc)
     elements.append(Spacer(1, 20))
 
     # Modified table with only two columns
@@ -187,18 +191,13 @@ def create_excel_report(results, output_file):
         cell.font = openpyxl.styles.Font(size=9, color="666666")  # Gray color
         cell.alignment = openpyxl.styles.Alignment(vertical='center')
     
-    # Center columns for proper alignment - merge only two columns
-    title_start_col = 'B'  # Start from column B
-    title_end_col = 'C'    # End at column C (two columns total)
-    
-    # Add header and taglines (center aligned with proper merging)
-    ws.merge_cells(f'{title_start_col}1:{title_end_col}1')
-    header_cell = ws[f'{title_start_col}1']
+    # Add header and taglines (center aligned in column B with same width as analysis)
+    header_cell = ws['B1']
     header_cell.value = "EstateGenius AI"
     header_cell.font = openpyxl.styles.Font(size=16, bold=True)
     header_cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     
-    # Add taglines with proper merging
+    # Add taglines
     taglines = [
         "Your Pricing Partner",
         "Saves Hours of Internet Search",
@@ -206,9 +205,7 @@ def create_excel_report(results, output_file):
     ]
     
     for idx, tagline in enumerate(taglines, 2):
-        cell_range = f'{title_start_col}{idx}:{title_end_col}{idx}'
-        ws.merge_cells(cell_range)
-        cell = ws[f'{title_start_col}{idx}']
+        cell = ws[f'B{idx}']
         cell.value = tagline
         cell.font = openpyxl.styles.Font(size=11)
         cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
@@ -268,104 +265,7 @@ def create_excel_report(results, output_file):
     except Exception as e:
         st.error(f"Save error: {str(e)}")
         return False
-
-def create_excel_report(results, output_file):
-    """Create Excel report with images and analyses - modified for two columns"""
-    wb = openpyxl.Workbook()
-    ws = wb.active
     
-    # Add contact information (top left)
-    ws['A1'] = "Email: clara@estategeniusai.com"
-    ws['A2'] = "Mobile: (+)469-659-7089"
-    ws['A3'] = "Website: www.estategeniusai.com"
-    
-    # Style contact info
-    for cell in [ws['A1'], ws['A2'], ws['A3']]:
-        cell.font = openpyxl.styles.Font(size=9, color="666666")  # Gray color
-        cell.alignment = openpyxl.styles.Alignment(vertical='center')
-    
-    # Center columns for proper alignment - merge only two columns
-    title_start_col = 'B'  # Start from column B
-    title_end_col = 'C'    # End at column C (two columns total)
-    
-    # Add header and taglines (center aligned with proper merging)
-    ws.merge_cells(f'{title_start_col}1:{title_end_col}1')
-    header_cell = ws[f'{title_start_col}1']
-    header_cell.value = "EstateGenius AI"
-    header_cell.font = openpyxl.styles.Font(size=16, bold=True)
-    header_cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
-    
-    # Add taglines with proper merging
-    taglines = [
-        "Your Pricing Partner",
-        "Saves Hours of Internet Search",
-        "We Customize AI According to Your Needs"
-    ]
-    
-    for idx, tagline in enumerate(taglines, 2):
-        cell_range = f'{title_start_col}{idx}:{title_end_col}{idx}'
-        ws.merge_cells(cell_range)
-        cell = ws[f'{title_start_col}{idx}']
-        cell.value = tagline
-        cell.font = openpyxl.styles.Font(size=11)
-        cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
-    
-    # Add some space before the table headers
-    start_row = 6  # Start the actual content from row 6
-    
-    # Modified headers for two columns
-    headers = ['Image', 'Analysis']
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=start_row, column=col, value=header)
-        cell.font = openpyxl.styles.Font(bold=True)
-        cell.fill = openpyxl.styles.PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
-        cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
-
-    # Add data with combined filename and analysis
-    for row_idx, result in enumerate(results, start_row + 1):
-        try:
-            if os.path.exists(result['temp_image_path']):
-                img = XLImage(result['temp_image_path'])
-                img.width = 200
-                img.height = 200
-                ws.add_image(img, f'A{row_idx}')
-            
-            # Use only the analysis in second column
-            analysis_cell = ws.cell(row=row_idx, column=2, value=result['analysis'])
-            analysis_cell.alignment = openpyxl.styles.Alignment(wrap_text=True, vertical='top')
-            
-            # Set row height based on content
-            ws.row_dimensions[row_idx].height = max(150, len(result['analysis'].split('\n')) * 15)
-            
-        except Exception as e:
-            st.error(f"Excel error: {str(e)}")
-
-    # Adjust column widths for two columns
-    ws.column_dimensions['A'].width = 30  # For images
-    ws.column_dimensions['B'].width = 70  # Wider column for combined analysis
-
-    # Set row heights for header section
-    for i in range(1, 5):  # Rows 1-4 (contact info and taglines)
-        ws.row_dimensions[i].height = 20
-    
-    # Add borders to content cells
-    content_range = f'A{start_row}:B{len(results) + start_row}'
-    for row in ws[content_range]:
-        for cell in row:
-            cell.border = openpyxl.styles.Border(
-                left=openpyxl.styles.Side(style='thin'),
-                right=openpyxl.styles.Side(style='thin'),
-                top=openpyxl.styles.Side(style='thin'),
-                bottom=openpyxl.styles.Side(style='thin')
-            )
-
-    try:
-        wb.save(output_file)
-        return True
-    except Exception as e:
-        st.error(f"Save error: {str(e)}")
-        return False
-
 def create_basic_report(images):
     """Create report data without API processing and analysis"""
     results = []

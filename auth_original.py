@@ -42,6 +42,7 @@ def login_page():
             /* Main container styling */
             .stApp {
                 background-color: #FAFBFF;
+                margin-top: -2rem !important;
             }
             
             /* Logo and title container */
@@ -69,12 +70,12 @@ def login_page():
                 color: #64748B;
                 font-size: 14px;
                 margin-top: 2px;
-                margin-bottom: 0.5rem;
+                margin-bottom: 0.1rem;
             }
             
             /* Tab styling */
             .stTabs {
-                margin-top: 1rem;
+                margin-top: 0.2rem;
             }
             
             /* Input fields */

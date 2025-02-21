@@ -102,41 +102,52 @@ def create_pdf_report(results, output_file):
     tagline_style.leading = 14
     tagline_style.spaceAfter = 20
     
-    # Create header with title and taglines centered
+    # Create header table with title and contact info
     header_style.textColor = colors.HexColor('#D97757')  # Set title color
     header_style.alignment = 1  # Center alignment
     
-    elements.append(Paragraph("EstateGenius AI", header_style))
-    elements.append(Paragraph("Your Pricing Partner", tagline_style))
-    elements.append(Paragraph("Saves Hours of Internet Search", tagline_style))
-    elements.append(Paragraph("We Customize AI According to Your Needs", tagline_style))
-    
-    # Add contact info in top right
-    contact_frame = Frame(
-        doc.pagesize[0] - doc.rightMargin - 200,  # x position
-        doc.pagesize[1] - doc.topMargin - 30,     # y position
-        200,                                       # width
-        50,                                        # height
-        leftPadding=0,
-        bottomPadding=0,
-        rightPadding=0,
-        topPadding=0
-    )
-    
+    # Contact info in the right column
     contact_info = [
         [Paragraph("Email: clara@estategeniusai.com", contact_style)],
         [Paragraph("Mobile: (+1)4696597089", contact_style)],
         [Paragraph("Website: www.estategeniusai.com", contact_style)]
     ]
-    contact_table = Table(contact_info)
+    
+    # Title and taglines in the center column
+    title_content = [
+        [Paragraph("EstateGenius AI", header_style)],
+        [Paragraph("Your Pricing Partner", tagline_style)],
+        [Paragraph("Saves Hours of Internet Search", tagline_style)],
+        [Paragraph("We Customize AI According to Your Needs", tagline_style)]
+    ]
+    
+    # Create tables for each section
+    contact_table = Table(contact_info, colWidths=[200])
+    title_table = Table(title_content, colWidths=[300])
+    
+    # Style the tables
     contact_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
     
-    contact_story = []
-    contact_story.append(contact_table)
-    contact_frame.addFromList(contact_story, doc)
+    title_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    # Create a table for the header layout
+    header_layout = Table([
+        ['', title_table, contact_table]
+    ], colWidths=[20, 300, 200])  # Added small left margin
+    
+    header_layout.setStyle(TableStyle([
+        ('ALIGN', (1, 0), (1, 0), 'CENTER'),  # Center title
+        ('ALIGN', (2, 0), (2, 0), 'RIGHT'),   # Right align contact
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    elements.append(header_layout)
     elements.append(Spacer(1, 20))
 
     # Modified table with only two columns

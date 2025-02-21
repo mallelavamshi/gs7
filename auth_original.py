@@ -256,3 +256,10 @@ def login_page():
                             else:
                                 st.error("Username or email already exists")
                 st.markdown('</div>', unsafe_allow_html=True)
+
+def authenticated_layout(main_app_function):
+   """Authentication wrapper"""
+   if "authenticated_user" in st.session_state:
+       main_app_function()
+   else:
+       login_page()

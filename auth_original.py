@@ -61,7 +61,7 @@ def login_page():
                 color: #1E2E4A;
                 font-size: 26px;
                 font-weight: 600;
-                margin: 8px 0;
+                margin: 0px 0;
                 display: inline-block;
                 vertical-align: middle;
             }
@@ -69,8 +69,9 @@ def login_page():
             .logo-container p {
                 color: #64748B;
                 font-size: 14px;
-                margin-top: 2px;
-                margin-bottom: 1rem;
+                margin-top: 0px;
+                margin-bottom: 0rem;
+                line-height: 1;
             }
             
             /* Tab styling */

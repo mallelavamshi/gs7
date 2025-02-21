@@ -70,7 +70,7 @@ def login_page():
                 color: #64748B;
                 font-size: 14px;
                 margin-top: 2px;
-                margin-bottom: 0.5rem;
+                margin-bottom: 1rem;
             }
             
             /* Tab styling */

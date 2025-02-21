@@ -65,7 +65,7 @@ def format_time(seconds):
     return "00:00:00"
 
 def create_pdf_report(results, output_file):
-    """Create PDF report with images and analyses"""
+    """Create PDF report with images and analyses - modified for two columns"""
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image as PDFImage, Paragraph, Spacer
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
@@ -131,21 +131,23 @@ def create_pdf_report(results, output_file):
     elements.append(layout_table)
     elements.append(Spacer(1, 20))
 
-    # Rest of the PDF generation code remains the same
-    data = [["Image", "File Name", "Analysis"]]
+    # Modified table with only two columns
+    data = [["Image", "Analysis"]]  # Changed headers
     for result in results:
         try:
             img = PDFImage(result['temp_image_path'], width=150, height=150)
+            # Combine filename and analysis
+            combined_analysis = f"Item: {result['name']}\n\n{result['analysis']}"
             row = [
                 img,
-                Paragraph(result['name'], styles['BodyText']),
-                Paragraph(result['analysis'], styles['BodyText'])
+                Paragraph(combined_analysis, styles['BodyText'])
             ]
             data.append(row)
         except Exception as e:
             st.error(f"PDF error: {str(e)}")
 
-    table = Table(data, colWidths=[160, 160, 260])
+    # Adjusted column widths for two columns
+    table = Table(data, colWidths=[160, 420])  # Increased width for analysis column
     table.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.grey),
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
@@ -155,6 +157,7 @@ def create_pdf_report(results, output_file):
         ('BACKGROUND', (0,1), (-1,-1), colors.beige),
         ('GRID', (0,0), (-1,-1), 1, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (1,1), (1,-1), 'LEFT'),  # Left align analysis text
     ]))
 
     elements.append(table)
@@ -167,7 +170,7 @@ def create_pdf_report(results, output_file):
         return False
 
 def create_excel_report(results, output_file):
-    """Create Excel report with images and analyses"""
+    """Create Excel report with images and analyses - modified for two columns"""
     wb = openpyxl.Workbook()
     ws = wb.active
     
@@ -200,7 +203,6 @@ def create_excel_report(results, output_file):
     ]
     
     for idx, tagline in enumerate(taglines, 2):
-        # Merge cells for each tagline
         cell_range = f'{title_start_col}{idx}:{title_end_col}{idx}'
         ws.merge_cells(cell_range)
         cell = ws[f'{title_start_col}{idx}']
@@ -211,15 +213,15 @@ def create_excel_report(results, output_file):
     # Add some space before the table headers
     start_row = 6  # Start the actual content from row 6
     
-    # Add headers for content
-    headers = ['Image', 'File Name', 'Analysis']
+    # Modified headers for two columns
+    headers = ['Image', 'Analysis']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=start_row, column=col, value=header)
         cell.font = openpyxl.styles.Font(bold=True)
         cell.fill = openpyxl.styles.PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
         cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
 
-    # Add data
+    # Add data with combined filename and analysis
     for row_idx, result in enumerate(results, start_row + 1):
         try:
             if os.path.exists(result['temp_image_path']):
@@ -228,31 +230,27 @@ def create_excel_report(results, output_file):
                 img.height = 200
                 ws.add_image(img, f'A{row_idx}')
             
-            # Add file name
-            name_cell = ws.cell(row=row_idx, column=2, value=result['name'])
-            name_cell.alignment = openpyxl.styles.Alignment(horizontal='left', vertical='center')
-            
-            # Add analysis with proper wrapping
-            analysis_cell = ws.cell(row=row_idx, column=3, value=result['analysis'])
+            # Combine filename and analysis in second column
+            combined_analysis = f"Item: {result['name']}\n\n{result['analysis']}"
+            analysis_cell = ws.cell(row=row_idx, column=2, value=combined_analysis)
             analysis_cell.alignment = openpyxl.styles.Alignment(wrap_text=True, vertical='top')
             
             # Set row height based on content
-            ws.row_dimensions[row_idx].height = max(150, len(result['analysis'].split('\n')) * 15)
+            ws.row_dimensions[row_idx].height = max(150, len(combined_analysis.split('\n')) * 15)
             
         except Exception as e:
             st.error(f"Excel error: {str(e)}")
 
-    # Adjust column widths
-    ws.column_dimensions['A'].width = 30  # For contact info and images
-    ws.column_dimensions['B'].width = 35  # First column of merged header
-    ws.column_dimensions['C'].width = 35  # Second column of merged header
+    # Adjust column widths for two columns
+    ws.column_dimensions['A'].width = 30  # For images
+    ws.column_dimensions['B'].width = 70  # Wider column for combined analysis
 
     # Set row heights for header section
     for i in range(1, 5):  # Rows 1-4 (contact info and taglines)
         ws.row_dimensions[i].height = 20
     
     # Add borders to content cells
-    content_range = f'A{start_row}:C{len(results) + start_row}'
+    content_range = f'A{start_row}:B{len(results) + start_row}'
     for row in ws[content_range]:
         for cell in row:
             cell.border = openpyxl.styles.Border(
